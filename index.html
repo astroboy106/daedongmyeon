@@ -42,6 +42,15 @@ header h1{font-size:34px}
 body.sel .fig{height:min(46vh,440px)}
 html,body{touch-action:pan-y;overscroll-behavior:none}
 .legend{position:absolute;right:10px;bottom:10px;display:flex;gap:10px;background:var(--card);border-radius:10px;padding:6px 10px;font-size:12px;opacity:.92}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;border:2.5px solid;margin-right:4px;vertical-align:-1px}
+.vb{width:19px;height:18px;image-rendering:pixelated;flex:none;margin:0 -3px}
+.logo{line-height:0}.logo img{height:46px;width:auto;display:block}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}}:root[data-theme=dark] .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}
+@media(max-width:600px){.logo img{height:40px}}
+#splash{position:fixed;inset:0;z-index:60;background:#f4eee5;display:flex;align-items:center;justify-content:center;transition:opacity .35s}
+#splash.out{opacity:0;pointer-events:none}#splash[hidden]{display:none}
+.sp{position:relative;width:min(100vw,calc(100dvh*1080/1853));line-height:0}.sp img{width:100%;height:auto;display:block}
+#spStart{position:absolute;left:4.6%;top:91%;width:90.8%;height:4.4%;min-height:0;border-radius:999px;background:transparent;cursor:pointer}
+#spStart:active{background:#ffffff26}
 .hint{position:absolute;left:10px;right:10px;bottom:10px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:none}
 .hint.on{display:flex;justify-content:space-between;align-items:center;gap:8px}.hint button{color:var(--bg);text-decoration:underline;min-height:32px}
 .tabs{display:flex;gap:6px;padding:16px max(4vw,16px) 6px;position:sticky;top:0;background:var(--bg);z-index:2}
@@ -87,7 +96,8 @@ textarea.in{min-height:90px;resize:vertical}
 @media(max-width:600px){header h1{font-size:30px}}
 @media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
 </style></head><body>
-<header><h1>대동면지도</h1><div class="stat" id="stat"></div></header>
+<div id="splash" role="dialog" aria-label="대동면지도 시작 화면"><div class="sp"><img src="splash.jpg" alt="대동면지도 - 냉면 마니아들을 위한 맛집 탐방 여정"><button id="spStart" aria-label="시작"></button></div></div>
+<header><h1 class="logo"><img src="logo.png" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div></header>
 <div class="mapwrap"><div class="fig" id="fig"><div id="tiles" aria-hidden="true"></div><div class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div><svg id="map" aria-label="평양냉면집 약도"></svg></div>
 <div class="zoom" role="group" aria-label="지도 범위"><button data-z="k">전국</button><button data-z="s">서울</button><button data-z="a">수도권</button><button data-z="b">부산</button></div><div class="zoom zr" role="group" aria-label="확대 축소"><button data-f="in" aria-label="확대">＋</button><button data-f="out" aria-label="축소">－</button></div>
 <div class="legend"><span><i style="border-color:var(--brass)"></i>평양</span><span><i style="border-color:var(--pink)"></i>진주</span><span><i style="border-color:var(--mil)"></i>밀면</span><span><img id="lgBowl" alt="" style="width:16px;height:15px;image-rendering:pixelated;vertical-align:-3px;margin-right:3px">방문</span></div><div class="hint" id="hint"><span>지도에서 위치를 탭하세요</span><button id="hintX">취소</button></div></div>
@@ -375,7 +385,7 @@ function stopPick(){picking=null;$('#hint').classList.remove('on')}
 $('#hintX').onclick=()=>{const d=draft;stopPick();if(d)placeForm(d)};
 function stat(){const vp=new Set(visits.map(v=>v.pid)).size;$('#stat').innerHTML=`방문 <b>${vp}</b>/${allPlaces().length}곳 · 기록 <b>${visits.length}</b>`}
 function listRes(){const r=$('#res');if(!r)return;const qq=q.trim().replace(/\s+/g,'');const L=allPlaces().filter(p=>!qq||(p.n+p.a+(p.k==='jj'?'진주냉면':p.k==='mm'?'밀면':'평양냉면')).replace(/\s+/g,'').includes(qq)).sort((a,b)=>(avg(b.id)??-1)-(avg(a.id)??-1)||a.n.localeCompare(b.n,'ko'));
- r.innerHTML=L.length?L.map(p=>{const a=avg(p.id),n=pv(p.id).length;return`<button class="row" data-id="${esc(p.id)}"><span class="dot ${n?'v':''} ${p.k||''}"></span><span class="t"><div>${esc(p.n)}</div><div>${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':''}${esc(p.a)}${n?` · ${n}번 방문`:''}</div></span>${a?`<span class="score">${a.toFixed(1)}<small>/5</small></span>`:''}</button>`}).join(''):'<div class="empty">찾는 가게가 없습니다. + 가게로 추가하세요.</div>'}
+ r.innerHTML=L.length?L.map(p=>{const a=avg(p.id),n=pv(p.id).length;return`<button class="row" data-id="${esc(p.id)}">${n?`<img class="vb" src="${BOWL}" alt="방문">`:`<span class="dot ${p.k||''}"></span>`}<span class="t"><div>${esc(p.n)}</div><div>${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':''}${esc(p.a)}${n?` · ${n}번 방문`:''}</div></span>${a?`<span class="score">${a.toFixed(1)}<small>/5</small></span>`:''}</button>`}).join(''):'<div class="empty">찾는 가게가 없습니다. + 가게로 추가하세요.</div>'}
 function render(){stat();draw();const m=$('#main');
  if(tab==='list'){if(!$('#q')){m.innerHTML=`<input class="search" id="q" type="search" placeholder="가게·동네 검색" autocomplete="off" autocorrect="off" spellcheck="false"><div id="res"></div><div class="note">기본 목록은 2026년 평양냉면 톱10 기사와 전국 평양냉면·진주냉면·밀면 맛집 소개 기사 기준이며, 가게 위치는 대략이라 실제와 다를 수 있습니다. 가게 정보의 '위치 고치기'로 정확한 자리를 지정할 수 있고, 길찾기는 네이버·카카오 지도 링크로 엽니다. 두 손가락으로 지도만 확대·축소됩니다.</div>`;const qi=$('#q');qi.value=q;qi.addEventListener('input',()=>{q=qi.value;listRes()})}listRes();
  }else{const V=[...visits].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -468,7 +478,9 @@ async function importAll(file){try{const j=JSON.parse(await file.text());if(j.ap
 function resetHome(){closeSheet();if(typeof lbClose==='function')lbClose();stopPick();sel=null;const ib=$('#info');ib.hidden=true;ib.innerHTML='';document.body.classList.remove('sel');tab='list';q='';document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x.dataset.t==='list'));VW.s=0;zoom='s';render();scrollTo(0,0)}
 try{history.scrollRestoration='manual'}catch{}
 addEventListener('online',()=>draw());addEventListener('offline',()=>draw());addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
-let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome()}});
+const splash=$('#splash');function showSplash(){splash.hidden=false;splash.classList.remove('out')}
+$('#spStart').onclick=()=>{splash.classList.add('out');setTimeout(()=>{splash.hidden=true;draw()},350)};
+let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome();if(t>30*60*1000&&!sheet.classList.contains('on'))showSplash()}});
 resetHome();
 (async()=>{try{if(navigator.storage?.persist)navigator.storage.persist();const ph=await IDB.pall();for(const k in ph)PHOTO[k]=URL.createObjectURL(ph[k]);await reload()}catch(e){toast('저장소를 열지 못했습니다')}})();
 if('serviceWorker' in navigator){let swReg=null,hadCtl=!!navigator.serviceWorker.controller,pendingReload=false;
