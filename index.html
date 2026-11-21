@@ -492,7 +492,7 @@ function startMusic(){musicWant=true;if(!actx||!mbuf||msrc)return;try{mgain=actx
 function stopMusic(){musicWant=false;if(msrc&&mgain&&actx){try{const t=actx.currentTime,s=msrc;mgain.gain.setValueAtTime(mgain.gain.value,t);mgain.gain.linearRampToValueAtTime(0,t+.4);setTimeout(()=>{try{s.stop()}catch(e){}},500)}catch(e){}}msrc=null}
 const intro=$('#intro'),spr=intro.querySelector('.spr');let introT=null;
 function endIntro(){clearTimeout(introT);try{iv.pause()}catch(e){}if(!splash.hidden)startMusic();intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
-const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());iv.addEventListener('timeupdate',()=>{if(iv.currentTime>=10.9&&!intro.hidden)startMusic()});
+const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());let mT=null;iv.addEventListener('playing',()=>{clearInterval(mT);mT=setInterval(()=>{if(intro.hidden||iv.paused){clearInterval(mT);return}if(iv.currentTime>=11.15){clearInterval(mT);startMusic()}},30)});
 function playIntro(){clearTimeout(introT);intro.hidden=false;intro.classList.remove('out');
  try{iv.currentTime=0;iv.muted=false;const pr=iv.play();introT=setTimeout(endIntro,16000);if(pr&&pr.catch)pr.catch(()=>{iv.muted=true;const p2=iv.play();if(p2&&p2.catch)p2.catch(()=>{clearTimeout(introT);playSprite()})});return}catch(e){}
  playSprite()}
