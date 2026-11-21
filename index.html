@@ -31,6 +31,10 @@ header h1{font-size:34px}
 .stat{color:var(--soft);font-size:14px;white-space:nowrap}.stat b{color:var(--ink);font-size:20px;font-family:"Nanum Myeongjo",serif}
 .mapwrap{margin:0 max(4vw,16px);border-radius:16px;overflow:hidden;background:var(--land);position:relative}
 .fig{position:relative;height:min(62vh,560px);min-height:320px;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:contain}.fig>svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}.pin{cursor:pointer}
+#tiles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}.fig{isolation:isolate}#tiles img{position:absolute;left:0;top:0;opacity:0;transition:opacity .2s;max-width:none;transform-origin:0 0}#tiles img.ok{opacity:1}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #tiles{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}:root[data-theme=dark] #tiles{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+.attr{position:absolute;left:12px;bottom:46px;font-size:10px;color:#555;background:#fffc;padding:1px 5px;border-radius:4px;z-index:2;pointer-events:auto}.attr a{color:inherit}
+.fig>svg{z-index:1}
 .zoom{position:absolute;top:10px;left:10px;display:flex;gap:4px;background:var(--card);border-radius:12px;padding:3px;box-shadow:0 1px 4px #0002}
 .zoom button{padding:0 12px;font-size:14px;min-height:36px}.zoom button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
 .zr{left:auto;right:10px;flex-direction:column}.zr button{font-size:20px;padding:0;width:40px}
@@ -84,7 +88,7 @@ textarea.in{min-height:90px;resize:vertical}
 @media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
 </style></head><body>
 <header><h1>대동면지도</h1><div class="stat" id="stat"></div></header>
-<div class="mapwrap"><div class="fig" id="fig"><svg id="map" aria-label="평양냉면집 약도"></svg></div>
+<div class="mapwrap"><div class="fig" id="fig"><div id="tiles" aria-hidden="true"></div><div class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div><svg id="map" aria-label="평양냉면집 약도"></svg></div>
 <div class="zoom" role="group" aria-label="지도 범위"><button data-z="k">전국</button><button data-z="s">서울</button><button data-z="a">수도권</button><button data-z="b">부산</button></div><div class="zoom zr" role="group" aria-label="확대 축소"><button data-f="in" aria-label="확대">＋</button><button data-f="out" aria-label="축소">－</button></div>
 <div class="legend"><span><i style="border-color:var(--brass)"></i>평양</span><span><i style="border-color:var(--pink)"></i>진주</span><span><i style="border-color:var(--mil)"></i>밀면</span><span><img id="lgBowl" alt="" style="width:16px;height:15px;image-rendering:pixelated;vertical-align:-3px;margin-right:3px">방문</span></div><div class="hint" id="hint"><span>지도에서 위치를 탭하세요</span><button id="hintX">취소</button></div></div>
 <section class="info" id="info" hidden></section>
@@ -247,7 +251,7 @@ const K=Math.cos(37.55*Math.PI/180);
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let zoom='s',tab='list',q='',places=[],visits=[],mine=[],db=null,col=null,assets=null,picking=null,draft=null,sel=null,mem=!0;
 const svg=$('#map'),fig=$('#fig');
-const allPlaces=()=>[...BASE,...mine];
+let POS={};const allPlaces=()=>[...BASE,...mine].map(p=>POS[p.id]?{...p,lat:POS[p.id].lat,lng:POS[p.id].lng,moved:1}:p);
 const pv=id=>visits.filter(v=>v.pid===id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 const avg=id=>{const v=pv(id).filter(x=>x.score);return v.length?v.reduce((s,x)=>s+x.score,0)/v.length:null};
 const BOWL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAATCAYAAACQjC21AAADU0lEQVR4Xq2UXUxTZxjH/+8BMtdy7AoqAgZhsrqg4geaUCFG2HbHDSF64cKAll2xZUuW4K3JAnG74UKH2hg08YYQbL2awBQGKkr8Gmo3ChQphQYYZbWhMD2c9zHve6Bkcd6Iz9V7cp739/8/H+cwvKeoKs2g2X/NUN4H75rbQ4JzvX+ErZvn8XiosiRDAsV5XUC3202i1FXYKvido7Gx0YC528lRminPb61Z0zSZ8MkWC5gCMA5wAESEQGSJNTT8SGM3zsP2eR2GbvyCSz1TkvXGUJzOGpIwhYEYh382ir+XkkCMofBsOjZ8aYHZrJL/ZjN2fFGHv7qa47D/AB21TnK5LtJv7lb5gj/NQII3BxwE26ZEFJ3LwuC9JRSWpCCrSkVrfxQjnWewq+w7OJ3O+DCkQ4ejmooP29FQ/y2SyOgCYwSuGHkj8xyemhAKilXc65nH/qMqMqtV9Dx5gfyK72G321FbW2skVztqqKWlhbZ/ZKau56/oq+I02pedSpr+ijR9mcwmC1UWp1N+lpVMpmQ60baTPv0mnXJSTVRZtJWyrSaajnH61b9MDoeDFNI5Tv1Qh+YHEezenCRF/HMcX5dsR2FuGo4d+BDeSQ3+fzQcP6jCd3IewcsxHMlTcefPKO5OLuDZLKEgPUHeTWSM4UKrB/WfpeH0zRn87l1A+QEV7Y9iINIxHNbBdQ3l+1QMBjUMz77EsQIz/pjQcPZBVE5dI45HvR1rwGBgAj9duALydaF0z0a03Y/h+CGTHIgCBqIPcPXxIlISX6JirxWDwWX83DODXZuAh73XwQgYGBiQcCYGYrcXyQexKtsyMqEoinT3P1u1JsIgQbf770hRzjlCoRAS+/puw2KxIi8vD8QJycnJ8Pl8EipCCImzuCDaI4XliisYHx8HSMcyB8LhMG719kEZHR1lTU1NLDg1CcEQF202m1wbY30MiCEgQMb6CoerVYgcl8vFRsf84qMCcnNzaX4ujFBoGkNDQyvOWBy2CiUyShMCE2PjYExMlkt3ghH/UoTLjo4OTE+HZI+8Xi9ydnxsNDle5oo3RUEgEJD91nUdkUgU3d3dkvHGz8Fms5GAlJWVIcVqEfWuuFgrfWExJocQiUTQ2dmJhASG4WEDJuI1ZyKv6ExXT3kAAAAASUVORK5CYII=';const PHOTO={};document.getElementById('lgBowl').src=BOWL;const img=id=>PHOTO[id]||'';
@@ -255,19 +259,31 @@ function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';cl
 const Z={k:[33.0,124.9,38.65,130.0],s:[37.475,126.895,37.600,127.130],a:[37.47,126.74,37.76,127.16],b:[35.045,128.93,35.29,129.22]};
 const VW={lat:37.54,lng:127.0,s:0};
 function fitZ(k){const W=Math.max(fig.clientWidth,200)||360,H=Math.max(fig.clientHeight,200)||400,[a0,b0,a1,b1]=Z[k];VW.lat=(a0+a1)/2;VW.lng=(b0+b1)/2;VW.s=Math.max(SMIN,Math.min(W/((b1-b0)*K),H/(a1-a0))*0.92);zoom=k}
-function proj(W,H){const s=VW.s;return{f:(la,ln)=>[W/2+(ln-VW.lng)*K*s,H/2-(la-VW.lat)*s],inv:(x,y)=>[VW.lat-(y-H/2)/s,VW.lng+(x-W/2)/(K*s)]}}
-const SMIN=40,SMAX=260000;
-function zoomAt(px,py,f){const W=fig.clientWidth,H=fig.clientHeight,P=proj(W,H),[la,ln]=P.inv(px,py);VW.s=Math.max(SMIN,Math.min(SMAX,VW.s*f));VW.lng=ln-(px-W/2)/(K*VW.s);VW.lat=la+(py-H/2)/VW.s;zoom='';req()}
+const D2R=Math.PI/180,MY=la=>Math.log(Math.tan(Math.PI/4+la*D2R/2))/D2R,MYi=y=>(2*Math.atan(Math.exp(y*D2R))-Math.PI/2)/D2R;
+function proj(W,H){const s=VW.s,c=MY(VW.lat);return{f:(la,ln)=>[W/2+(ln-VW.lng)*K*s,H/2-(MY(la)-c)*K*s],inv:(x,y)=>[MYi(c-(y-H/2)/(K*s)),VW.lng+(x-W/2)/(K*s)]}}
+const SMIN=40,SMAX=940000;
+function zoomAt(px,py,f){const W=fig.clientWidth,H=fig.clientHeight,P=proj(W,H),[la,ln]=P.inv(px,py);VW.s=Math.max(SMIN,Math.min(SMAX,VW.s*f));VW.lng=ln-(px-W/2)/(K*VW.s);VW.lat=MYi(MY(la)+(py-H/2)/(K*VW.s));zoom='';req()}
 function offsetLine(p,km){const d=km/111;return p.map((q,i)=>{const a=p[Math.max(0,i-1)],b=p[Math.min(p.length-1,i+1)],dx=(b[1]-a[1])*K,dy=b[0]-a[0],L=Math.hypot(dx,dy)||1;return[q[0]+dx/L*d,q[1]-dy/L*d/K]})}
 GREEN.push(...BGREEN);SUB.push(...BSUB);AREAS.push(...BAREAS);ROADS.push(...BROADS);
 const NBANK=offsetLine(RIVER,.62),SBANK=offsetLine(RIVER,-.62);
 ROADS.unshift({n:'강변북로',t:1,p:NBANK.slice(1,-1)},{n:'올림픽대로',t:1,p:SBANK.slice(1,-1)});
 let rq=0;function req(){if(!rq)rq=requestAnimationFrame(()=>{rq=0;draw()})}
 const T=(x,y,t,sz,fill,w,anc)=>`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${sz}" ${w?`font-weight="${w}"`:''} text-anchor="${anc||'middle'}" fill="${fill}" stroke="var(--land)" stroke-width="3" paint-order="stroke">${t}</text>`;
-function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;if(!(VW.s>0)||!isFinite(VW.s)||!isFinite(VW.lat)||!isFinite(VW.lng))fitZ(zoom||'s');const P=proj(W,H),km=VW.s/111;
+const TILESOK=location.protocol.startsWith('http')&&!/localhost|127\.0/.test(location.hostname)||/tiles=1/.test(location.search);
+const tileBox=document.getElementById('tiles'),tilePool=new Map();
+function drawTiles(W,H){const c=MY(VW.lat),pxDeg=K*VW.s;let zf=Math.log2(pxDeg*360/256);const used=new Set();
+ for(const zt of [Math.max(0,Math.min(19,Math.round(zf)-1)),Math.max(0,Math.min(19,Math.round(zf)))]){const n=2**zt,ts=pxDeg*360/n;
+  const lng0=VW.lng-(W/2)/pxDeg,lng1=VW.lng+(W/2)/pxDeg,y0=c+(H/2)/pxDeg,y1=c-(H/2)/pxDeg;
+  const tx0=Math.floor((lng0+180)/360*n),tx1=Math.floor((lng1+180)/360*n),ty0=Math.floor((180-y0)/360*n),ty1=Math.floor((180-y1)/360*n);
+  if((tx1-tx0+1)*(ty1-ty0+1)>80)continue;
+  for(let ty=Math.max(0,ty0);ty<=Math.min(n-1,ty1);ty++)for(let tx=tx0;tx<=tx1;tx++){const k=zt+'/'+tx+'/'+ty;used.add(k);let im=tilePool.get(k);
+   if(!im){im=new Image();im.decoding='async';im.alt='';im.draggable=false;im.style.zIndex=zt;im.onload=()=>im.classList.add('ok');im.src=`https://tile.openstreetmap.org/${zt}/${((tx%n)+n)%n}/${ty}.png`;tileBox.appendChild(im);tilePool.set(k,im)}
+   const x=W/2+((tx/n*360-180)-VW.lng)*pxDeg,y=H/2-((180-ty/n*360)-c)*pxDeg;im.style.transform=`translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;im.style.width=im.style.height=(ts+.6).toFixed(2)+'px'}}
+ for(const[k,im]of tilePool)if(!used.has(k)){im.remove();tilePool.delete(k)}}
+function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;const TILES=TILESOK&&navigator.onLine!==false;if(!TILES&&tilePool.size){for(const im of tilePool.values())im.remove();tilePool.clear()}if(!(VW.s>0)||!isFinite(VW.s)||!isFinite(VW.lat)||!isFinite(VW.lng))fitZ(zoom||'s');const P=proj(W,H),km=K*VW.s/(111.32*Math.cos(VW.lat*D2R));if(TILES)drawTiles(W,H);const PS=TILES?Math.max(km<5?.8:1.0,Math.min(3.5,1.2*Math.sqrt(km/300))):(km<5?.8:1.2);
  const inV=([x,y],m=60)=>x>-m&&x<W+m&&y>-m&&y<H+m;
  const pl=p=>p.map(q=>P.f(q[0],q[1]).map(n=>n.toFixed(1)).join(',')).join(' ');
- let h=`<rect width="${W}" height="${H}" fill="var(--water)"/><polygon points="${pl(KOR)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/><polygon points="${pl(YEONGDO)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/>`;{const[jx,jy]=P.f(33.38,126.55);h+=`<ellipse cx="${jx.toFixed(1)}" cy="${jy.toFixed(1)}" rx="${(37*km).toFixed(1)}" ry="${(17*km).toFixed(1)}" fill="var(--land)" stroke="var(--case)"/>`}
+ let h='';if(!TILES){h=`<rect width="${W}" height="${H}" fill="var(--water)"/><polygon points="${pl(KOR)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/><polygon points="${pl(YEONGDO)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/>`;{const[jx,jy]=P.f(33.38,126.55);h+=`<ellipse cx="${jx.toFixed(1)}" cy="${jy.toFixed(1)}" rx="${(37*km).toFixed(1)}" ry="${(17*km).toFixed(1)}" fill="var(--land)" stroke="var(--case)"/>`}
  for(const g of GREEN){const[x,y]=P.f(g.a,g.b),rx=g.x*km,ry=g.y*km;if(x+rx<0||x-rx>W||y+ry<0||y-ry>H)continue;h+=`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="var(--park)"/>`}
  for(const s of STREAMS)h+=`<polyline points="${pl(s.p)}" fill="none" stroke="var(--water)" stroke-width="${Math.max(2,(s.n==='청계천'?.02:.12)*km).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
  for(const s of BSTREAMS)h+=`<polyline points="${pl(s.p)}" fill="none" stroke="var(--water)" stroke-width="${Math.max(2,s.w*km).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -285,13 +301,14 @@ function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;if(!(VW.
   h+=`<circle cx="${A[0].toFixed(1)}" cy="${A[1].toFixed(1)}" r="${km>60?4.5:3}" fill="var(--card)" stroke="${l.c}" stroke-width="2"/>`;if(km>55&&!dup)h+=T(A[0]+7,A[1]+4,n,11,'var(--ink)',500,'start')}}
  if(km>6&&km<30)for(const[n,a,b]of [['낙동강',35.150,128.964],['수영강',35.205,129.117]]){const A=P.f(a,b);if(inV(A,0))h+=T(A[0],A[1]+4,n,12,'var(--waterink)',700)}
  if(km<30){const A=P.f(37.5165,127.000);if(inV(A,0))h+=T(A[0],A[1]+4,'한강',12,'var(--waterink)',700)}
- const ps=allPlaces().map(p=>({p,xy:P.f(p.lat,p.lng)})).filter(o=>inV(o.xy,20)).sort((a,b)=>a.xy[1]-b.xy[1]);
- const boxes=[];for(const o of ps)boxes.push([o.xy[0]-11,o.xy[1]-12,o.xy[0]+11,o.xy[1]+9]);const fits=(x,y,w)=>{const b=[x-w/2,y,x+w/2,y+16];if(boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1]))return 0;boxes.push(b);return 1};
+ }
+ const ps=allPlaces().map(p=>({p,xy:P.f(p.lat,p.lng)})).filter(o=>inV(o.xy,20*PS)).sort((a,b)=>a.xy[1]-b.xy[1]);
+ const boxes=[];for(const o of ps)boxes.push([o.xy[0]-11*PS,o.xy[1]-12*PS,o.xy[0]+11*PS,o.xy[1]+9*PS]);const fits=(x,y,w)=>{const b=[x-w/2,y,x+w/2,y+16];if(boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1]))return 0;boxes.push(b);return 1};
  let top='';const vis=o=>pv(o.p.id).length>0;for(const{p,xy:[x,y]}of [...ps.filter(o=>o.p.id===sel),...ps.filter(o=>o.p.id!==sel&&vis(o)),...ps.filter(o=>o.p.id!==sel&&!vis(o))]){const v=pv(p.id).length,a=avg(p.id),on=sel===p.id,pc=p.k==='jj'?'var(--pink)':p.k==='mm'?'var(--mil)':'var(--brass)',lab=esc(p.n)+(a?' '+a.toFixed(1):''),lw=(p.n.length+(a?2.5:0))*12.5+6;
-  const pg=`<g class="pin" data-id="${esc(p.id)}"><g transform="translate(${x} ${y}) scale(${km<5?.8:1.2}) translate(${-x} ${-y})"><circle cx="${x}" cy="${y}" r="22" fill="transparent"/><ellipse cx="${x}" cy="${y+9}" rx="10" ry="3" fill="#0003"/>${v?`<image href="${BOWL}" x="${x-14}" y="${y-15.3}" width="28" height="26.6" style="image-rendering:pixelated" preserveAspectRatio="none"/><rect x="${x-7}" y="${y+12.5}" width="14" height="2.5" rx="1.2" fill="${pc}"/>`:`<path d="M${x-11} ${y-4}h22a11 10 0 0 1-22 0z" fill="var(--card)" stroke="${pc}" stroke-width="2.2"/><path d="M${x-7} ${y-6.5}q3.5-3 7 0t7 0" fill="none" stroke="${pc}" stroke-width="1.5"/>`}${on?`<circle cx="${x}" cy="${y}" r="18" fill="none" stroke="var(--ink)" stroke-width="2.5"/>`:''}</g>
-  ${fits(x,y+(km<5?11:17),lw*(km<5?.9:1))?T(x,y+(km<5?23:29),lab,km<5?11.5:12.5,'var(--ink)',700):''}</g>`;if(v||on)top=(on?top+pg:pg+top);else h+=pg}
+  const pg=`<g class="pin" data-id="${esc(p.id)}"><g transform="translate(${x} ${y}) scale(${PS}) translate(${-x} ${-y})"><circle cx="${x}" cy="${y}" r="22" fill="transparent"/><ellipse cx="${x}" cy="${y+9}" rx="10" ry="3" fill="#0003"/>${v?`<image href="${BOWL}" x="${x-14}" y="${y-15.3}" width="28" height="26.6" style="image-rendering:pixelated" preserveAspectRatio="none"/><rect x="${x-7}" y="${y+12.5}" width="14" height="2.5" rx="1.2" fill="${pc}"/>`:`<path d="M${x-11} ${y-4}h22a11 10 0 0 1-22 0z" fill="var(--card)" stroke="${pc}" stroke-width="2.2"/><path d="M${x-7} ${y-6.5}q3.5-3 7 0t7 0" fill="none" stroke="${pc}" stroke-width="1.5"/>`}${on?`<circle cx="${x}" cy="${y}" r="18" fill="none" stroke="var(--ink)" stroke-width="2.5"/>`:''}</g>
+  ${fits(x,y+9*PS+6,lw*(km<5?.9:1))?T(x,y+9*PS+18,lab,km<5?11.5:12.5,'var(--ink)',700):''}</g>`;if(v||on)top=(on?top+pg:pg+top);else h+=pg}
  h+=top;
- if(km<5)for(const[n,a,b]of CITIES){const A=P.f(a,b);if(!inV(A,0))continue;if(fits(A[0]+3+n.length*6,A[1]-8,n.length*12+8))h+=`<circle cx="${A[0].toFixed(1)}" cy="${A[1].toFixed(1)}" r="2.5" fill="var(--soft)"/>`+T(A[0]+6,A[1]+4,n,11,'var(--soft)',500,'start')}
+ if(km<5&&!TILES)for(const[n,a,b]of CITIES){const A=P.f(a,b);if(!inV(A,0))continue;if(fits(A[0]+3+n.length*6,A[1]-8,n.length*12+8))h+=`<circle cx="${A[0].toFixed(1)}" cy="${A[1].toFixed(1)}" r="2.5" fill="var(--soft)"/>`+T(A[0]+6,A[1]+4,n,11,'var(--soft)',500,'start')}
  const sb=[.1,.2,.5,1,2,5,10,20,50,100].find(d=>d*km>=60)||20;h+=`<g transform="translate(14,${H-14})"><rect x="-6" y="-22" width="${(sb*km+12).toFixed(1)}" height="28" rx="6" fill="var(--card)" opacity=".85"/><line x2="${(sb*km).toFixed(1)}" stroke="var(--ink)" stroke-width="2"/><text x="${(sb*km/2).toFixed(1)}" y="-6" font-size="11" text-anchor="middle" fill="var(--ink)">${sb<1?sb*1000+'m':sb+'km'}</text></g>`;
  svg.innerHTML=h;document.querySelectorAll('.zoom [data-z]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.z===zoom))}
 const ro=new ResizeObserver(()=>{if(!VW.s||zoom)fitZ(zoom||'s');draw()});ro.observe(fig);
@@ -301,8 +318,8 @@ function gesture(){const v=[...ptr.values()];if(v.length===1)return{x:v[0][0],y:
 svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);ptr.set(e.pointerId,rel(e));if(ptr.size===1)moved=0;gst=gesture()});
 svg.addEventListener('pointermove',e=>{if(!ptr.has(e.pointerId))return;ptr.set(e.pointerId,rel(e));const g=gesture();if(!gst)return gst=g;
  const dx=g.x-gst.x,dy=g.y-gst.y;if(Math.abs(dx)+Math.abs(dy)>4||ptr.size>1)moved=1;
- if(ptr.size>1&&gst.d&&g.d){const W=fig.clientWidth,H=fig.clientHeight,[la,ln]=proj(W,H).inv(gst.x,gst.y);VW.s=Math.max(SMIN,Math.min(SMAX,VW.s*g.d/gst.d));VW.lng=ln-(g.x-W/2)/(K*VW.s);VW.lat=la+(g.y-H/2)/VW.s}
- else{VW.lng-=dx/(K*VW.s);VW.lat+=dy/VW.s}zoom='';gst=g;req()});
+ if(ptr.size>1&&gst.d&&g.d){const W=fig.clientWidth,H=fig.clientHeight,[la,ln]=proj(W,H).inv(gst.x,gst.y);VW.s=Math.max(SMIN,Math.min(SMAX,VW.s*g.d/gst.d));VW.lng=ln-(g.x-W/2)/(K*VW.s);VW.lat=MYi(MY(la)+(g.y-H/2)/(K*VW.s))}
+ else{VW.lng-=dx/(K*VW.s);VW.lat=MYi(MY(VW.lat)+dy/(K*VW.s))}zoom='';gst=g;req()});
 function up(e){if(!ptr.has(e.pointerId))return;const p=rel(e);ptr.delete(e.pointerId);gst=ptr.size?gesture():null;if(ptr.size||moved||e.type==='pointercancel')return;
  const now=Date.now();if(now-lastTap<300&&!picking){lastTap=0;zoomAt(p[0],p[1],2);return}lastTap=now;
  if(picking){const[la,ln]=proj(fig.clientWidth,fig.clientHeight).inv(p[0],p[1]);const cb=picking;stopPick();cb(la,ln);return}
@@ -326,7 +343,7 @@ function stat(){const vp=new Set(visits.map(v=>v.pid)).size;$('#stat').innerHTML
 function listRes(){const r=$('#res');if(!r)return;const qq=q.trim().replace(/\s+/g,'');const L=allPlaces().filter(p=>!qq||(p.n+p.a+(p.k==='jj'?'진주냉면':p.k==='mm'?'밀면':'평양냉면')).replace(/\s+/g,'').includes(qq)).sort((a,b)=>(avg(b.id)??-1)-(avg(a.id)??-1)||a.n.localeCompare(b.n,'ko'));
  r.innerHTML=L.length?L.map(p=>{const a=avg(p.id),n=pv(p.id).length;return`<button class="row" data-id="${esc(p.id)}"><span class="dot ${n?'v':''} ${p.k||''}"></span><span class="t"><div>${esc(p.n)}</div><div>${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':''}${esc(p.a)}${n?` · ${n}번 방문`:''}</div></span>${a?`<span class="score">${a.toFixed(1)}<small>/5</small></span>`:''}</button>`}).join(''):'<div class="empty">찾는 가게가 없습니다. + 가게로 추가하세요.</div>'}
 function render(){stat();draw();const m=$('#main');
- if(tab==='list'){if(!$('#q')){m.innerHTML=`<input class="search" id="q" type="search" placeholder="가게·동네 검색" autocomplete="off" autocorrect="off" spellcheck="false"><div id="res"></div><div class="note">기본 목록은 2026년 평양냉면 톱10 기사와 전국 평양냉면·진주냉면·밀면 맛집 소개 기사 기준이며, 지방 가게는 시·군 단위의 대략 위치입니다. 지도는 직접 그린 약도라 도로·역·가게 위치에 수백 m 오차가 있을 수 있고, 길찾기는 네이버·카카오 지도 링크로 엽니다. 두 손가락으로 지도만 확대·축소됩니다.</div>`;const qi=$('#q');qi.value=q;qi.addEventListener('input',()=>{q=qi.value;listRes()})}listRes();
+ if(tab==='list'){if(!$('#q')){m.innerHTML=`<input class="search" id="q" type="search" placeholder="가게·동네 검색" autocomplete="off" autocorrect="off" spellcheck="false"><div id="res"></div><div class="note">기본 목록은 2026년 평양냉면 톱10 기사와 전국 평양냉면·진주냉면·밀면 맛집 소개 기사 기준이며, 가게 위치는 대략이라 실제와 다를 수 있습니다. 가게 정보의 '위치 고치기'로 정확한 자리를 지정할 수 있고, 길찾기는 네이버·카카오 지도 링크로 엽니다. 두 손가락으로 지도만 확대·축소됩니다.</div>`;const qi=$('#q');qi.value=q;qi.addEventListener('input',()=>{q=qi.value;listRes()})}listRes();
  }else{const V=[...visits].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   m.innerHTML=`<div class="bar" style="justify-content:flex-start;flex-wrap:wrap;margin:6px 0 4px"><button class="btn" id="bkOut">백업 저장</button><label class="btn" for="bkIn" style="cursor:pointer">백업 불러오기</label><input type="file" id="bkIn" accept="application/json,.json" hidden></div><div class="note" style="margin-top:0">기록과 사진은 이 기기 안에만 저장됩니다. 기기를 바꾸거나 사파리 데이터를 지우기 전에 백업 저장을 해 두세요.</div>`+(V.length?V.map(vcard).join(''):`<div class="empty">아직 기록이 없습니다. 지도에서 가게를 탭하고 '기록 추가'를 눌러 첫 그릇을 남기세요.</div>`);
   $('#bkOut').onclick=exportAll;$('#bkIn').onchange=e=>{const f=e.target.files[0];if(f)importAll(f);e.target.value=''}}
@@ -346,10 +363,11 @@ sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();stopPick()}});
 function openPlace(id){sel=id;draw();const p=allPlaces().find(x=>x.id===id);if(!p)return;const a=avg(id),V=pv(id),qn=encodeURIComponent(p.n+' '+p.a.split(' ').slice(0,2).join(' '));
  const box=$('#info');box.hidden=false;document.body.classList.add('sel');box.innerHTML=(`<div class="bar"><h2>${esc(p.n)}</h2><button class="btn" data-x>닫기</button></div><div class="sub">${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':'평양냉면 · '}${esc(p.a)}${a?` · 내 평균 ${a.toFixed(1)} (${V.length}회)`:' · 아직 안 가봄'}</div>
- <div class="links"><a href="https://map.naver.com/p/search/${qn}" target="_blank" rel="noopener">네이버 지도</a><a href="https://map.kakao.com/?q=${qn}" target="_blank" rel="noopener">카카오맵</a>${p.mine?`<button class="btn" data-ep>가게 수정</button>`:''}</div>
+ <div class="links"><a href="https://map.naver.com/p/search/${qn}" target="_blank" rel="noopener">네이버 지도</a><a href="https://map.kakao.com/?q=${qn}" target="_blank" rel="noopener">카카오맵</a>${p.mine?`<button class="btn" data-ep>가게 수정</button>`:`<button class="btn" data-mv>위치 고치기</button>`}</div>
  <button class="btn pri" style="width:100%" data-nv>+ 기록 추가</button>${V.map(vcard).join('')}`);
  box.querySelector('[data-x]').onclick=closeInfo;box.querySelector('[data-nv]').onclick=()=>visitForm({pid:id});
  const ep=box.querySelector('[data-ep]');if(ep)ep.onclick=()=>placeForm({...p});
+ const mv=box.querySelector('[data-mv]');if(mv)mv.onclick=()=>{$('#hint span').textContent=p.n+' 위치를 지도에서 탭하세요';startPick(async(la,ln)=>{$('#hint span').textContent='지도에서 위치를 탭하세요';if(await save('pos_'+p.id,{kind:'pos',pid:p.id,lat:+la.toFixed(6),lng:+ln.toFixed(6)})){toast('위치를 고쳤습니다');openPlace(p.id)}})};
  box.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>visitForm(visits.find(v=>v.id===b.dataset.ev)));
  closeSheet();requestAnimationFrame(()=>{const r=$('.mapwrap').getBoundingClientRect();if(r.top<0||box.getBoundingClientRect().top>innerHeight-120)scrollTo({top:scrollY+r.top-8,behavior:'smooth'})})}
 function closeInfo(){sel=null;const box=$('#info');box.hidden=true;box.innerHTML='';document.body.classList.remove('sel');draw()}
@@ -400,7 +418,7 @@ let lbSw=0;lb.addEventListener('click',e=>{if(lbSw){lbSw=0;return}if(e.target===
 lb.addEventListener('pointerdown',e=>{lbX0=e.clientX});lb.addEventListener('pointerup',e=>{if(lbX0!=null&&Math.abs(e.clientX-lbX0)>50){lbSw=1;lbGo(e.clientX<lbX0?1:-1)}lbX0=null});
 document.addEventListener('keydown',e=>{if(!lb.classList.contains('on'))return;if(e.key==='Escape'){e.stopImmediatePropagation();lbClose()}if(e.key==='ArrowRight')lbGo(1);if(e.key==='ArrowLeft')lbGo(-1)},true);
 $('#addPlace').onclick=()=>placeForm({});
-function apply(docs){visits=docs.filter(d=>d.kind==='visit');mine=docs.filter(d=>d.kind==='place').map(d=>({...d,mine:1}));render();if(sel&&!sheet.classList.contains('on'))openPlace(sel)}
+function apply(docs){visits=docs.filter(d=>d.kind==='visit');mine=docs.filter(d=>d.kind==='place').map(d=>({...d,mine:1}));POS={};for(const d of docs)if(d.kind==='pos')POS[d.pid]=d;render();if(sel&&!sheet.classList.contains('on'))openPlace(sel)}
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('daedongmyeon',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('docs',{keyPath:'id'});d.createObjectStore('photos')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
  const tx=async(st,mode,fn)=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction(st,mode);const o=t.objectStore(st);const out=fn(o);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error)})};
  return{all:()=>tx('docs','readonly',o=>o.getAll()),put:v=>tx('docs','readwrite',o=>o.put(v)),del:k=>tx('docs','readwrite',o=>o.delete(k)),pput:(k,b)=>tx('photos','readwrite',o=>o.put(b,k)),pall:async()=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction('photos','readonly'),o=t.objectStore('photos'),out={};const c=o.openCursor();c.onsuccess=()=>{const cur=c.result;if(cur){out[cur.key]=cur.value;cur.continue()}else res(out)};c.onerror=()=>rej(c.error)})},pdel:k=>tx('photos','readwrite',o=>o.delete(k))}})();
@@ -415,7 +433,7 @@ async function exportAll(){toast('백업 파일을 만드는 중…');const ph=a
 async function importAll(file){try{const j=JSON.parse(await file.text());if(j.app!=='daedongmyeon')throw 0;for(const k in j.photos||{}){const b=await (await fetch(j.photos[k])).blob();await IDB.pput(k,b);PHOTO[k]=URL.createObjectURL(b)}for(const d of j.docs||[])await IDB.put(d);await reload();toast('복원했습니다: 기록 '+(j.docs||[]).filter(d=>d.kind==='visit').length+'개')}catch{toast('백업 파일을 읽지 못했습니다')}}
 function resetHome(){closeSheet();if(typeof lbClose==='function')lbClose();stopPick();sel=null;const ib=$('#info');ib.hidden=true;ib.innerHTML='';document.body.classList.remove('sel');tab='list';q='';document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x.dataset.t==='list'));VW.s=0;zoom='s';render();scrollTo(0,0)}
 try{history.scrollRestoration='manual'}catch{}
-addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
+addEventListener('online',()=>draw());addEventListener('offline',()=>draw());addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
 let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome()}});
 resetHome();
 (async()=>{try{if(navigator.storage?.persist)navigator.storage.persist();const ph=await IDB.pall();for(const k in ph)PHOTO[k]=URL.createObjectURL(ph[k]);await reload()}catch(e){toast('저장소를 열지 못했습니다')}})();
