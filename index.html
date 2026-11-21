@@ -46,7 +46,8 @@ html,body{touch-action:pan-y;overscroll-behavior:none}
 .logo{line-height:0}.logo img{height:46px;width:auto;display:block}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]) .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}}:root[data-theme=dark] .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}
 @media(max-width:600px){.logo img{height:40px}}
-#intro{position:fixed;inset:0;z-index:70;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .3s}#intro.out{opacity:0;pointer-events:none}#intro[hidden]{display:none}
+#intro{position:fixed;inset:0;z-index:70;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .3s}#intro.out{opacity:0;pointer-events:none}#intro[hidden]{display:none}
+#introV{width:100%;max-height:100%;object-fit:contain;display:block}
 #intro .spr{width:270px;height:280px;background:url(intro.png?v=1) 0 0/800% 100% no-repeat;image-rendering:auto}
 #splash{position:fixed;inset:0;z-index:60;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .35s}
 #splash.out{opacity:0;pointer-events:none}#splash[hidden]{display:none}
@@ -98,7 +99,7 @@ textarea.in{min-height:90px;resize:vertical}
 @media(max-width:600px){header h1{font-size:30px}}
 @media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
 </style></head><body>
-<div id="intro" aria-hidden="true"><div class="spr"></div></div>
+<div id="intro" aria-hidden="true"><video id="introV" src="intro.mp4?v=1" muted playsinline webkit-playsinline preload="auto"></video><div class="spr" hidden></div></div>
 <div id="splash" role="dialog" aria-label="대동면지도 시작 화면"><div class="sp"><img src="splash.jpg?v=3" alt="대동면지도 - 냉면 마니아들을 위한 맛집 탐방 여정"><button id="spStart">시작</button></div></div>
 <header><h1 class="logo"><img src="logo.png?v=2" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div></header>
 <div class="mapwrap"><div class="fig" id="fig"><div id="tiles" aria-hidden="true"></div><div class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div><svg id="map" aria-label="평양냉면집 약도"></svg></div>
@@ -483,8 +484,12 @@ try{history.scrollRestoration='manual'}catch{}
 addEventListener('online',()=>draw());addEventListener('offline',()=>draw());addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
 const splash=$('#splash');function showSplash(){splash.hidden=false;splash.classList.remove('out');playIntro()}
 const intro=$('#intro'),spr=intro.querySelector('.spr');let introT=null;
-function endIntro(){clearTimeout(introT);intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
-function playIntro(){clearTimeout(introT);intro.hidden=false;intro.classList.remove('out');const D=[1000,125,125,125,125,125,125,1000];let i=0;
+function endIntro(){clearTimeout(introT);try{iv.pause()}catch(e){}intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
+const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());
+function playIntro(){clearTimeout(introT);intro.hidden=false;intro.classList.remove('out');
+ try{iv.currentTime=0;const pr=iv.play();introT=setTimeout(endIntro,16000);if(pr&&pr.catch)pr.catch(()=>{clearTimeout(introT);playSprite()});return}catch(e){}
+ playSprite()}
+function playSprite(){iv.hidden=true;spr.hidden=false;intro.style.background='#fff';const D=[1000,125,125,125,125,125,125,1000];let i=0;
  const step=()=>{spr.style.backgroundPosition=(i/7*100)+'% 0';const d=D[i];i++;introT=setTimeout(i<8?step:endIntro,d)};
  const img=new Image();let started=false;const go=()=>{if(started)return;started=true;step()};img.onload=go;img.onerror=endIntro;img.src='intro.png?v=1';setTimeout(go,1500)}
 intro.addEventListener('click',endIntro);
