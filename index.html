@@ -434,7 +434,7 @@ function visitForm(v){const d={date:new Date(Date.now()+324e5).toISOString().sli
   panel.querySelectorAll('[data-rp]').forEach(b=>b.onclick=()=>{grab();d.photos=d.photos.filter(p=>p!==b.dataset.rp);paint()});
   $('#ff').onchange=async e=>{grab();const fs=[...e.target.files];if(!fs.length)return;busy=1;paint();
    for(const f of fs){try{const r=await assets.upload(await shrink(f));d.photos.push(r.id)}catch(err){toast('사진 업로드 실패: '+(err?.message||''))}}busy=0;paint()};
-  const del=panel.querySelector('[data-del]');if(del)del.onclick=async()=>{if(!armed){armed=1;grab();paint();return}await remove(d.id);closeSheet();toast('삭제했습니다')};
+  const del=panel.querySelector('[data-del]');if(del)del.onclick=async()=>{if(!armed){armed=1;grab();paint();return}await remove(d.id);closeSheet();if(sel)openPlace(sel);render();toast('삭제했습니다')};
   panel.querySelector('[data-save]').onclick=async()=>{grab();if(!d.score)return toast('총점을 골라 주세요');const id=d.id||'v'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
    const o={kind:'visit',pid:d.pid,date:d.date,score:d.score,broth:d.broth||0,noodle:d.noodle||0,meat:d.meat||0,again:!!d.again,price:d.price||'',menu:d.menu||'',memo:d.memo||'',photos:d.photos};
    if(await save(id,o)){closeSheet();toast('저장했습니다');if(sel===d.pid)openPlace(d.pid)}}};
