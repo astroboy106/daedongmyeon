@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>대동면지도</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="대동면지도">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 조용한 개인 기록장. 슴슴한 육수처럼 담백
+   IDEA: 면옥 벽에 붙은 차림표 + 놋그릇
+   PICTURE: 수도권 약도(한강) 위 놋쇠 핀, 탭하면 그 집 기록
+   COLOUR: 흰 바탕, 메밀 회갈색 면, 놋 #a7802f, 무절임 분홍 포인트
+   TYPE: 나눔명조(간판) + Noto Sans KR. LAYOUT: 상단 지도, 아래 목록/기록 탭 */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#151513);--ink:light-dark(#1f1d1a,#ece8e0);--soft:light-dark(#6d665b,#a9a296);--line:light-dark(#e6e2da,#2e2c28);--buck:light-dark(#efebe3,#211f1c);--land:light-dark(#f4f1eb,#2b2824);--brass:light-dark(#a7802f,#d2a74c);--pink:light-dark(#c9506b,#e07890);--mil:light-dark(#3f8f5a,#6cc28a);--water:light-dark(#b9d6df,#243940);--card:light-dark(#fff,#1c1b19);--park:light-dark(#dfe8d3,#1f2a1d);--parkink:light-dark(#5b7a4a,#8fb07c);--road:light-dark(#fff,#3a3833);--case:light-dark(#d6d0c4,#151513);--hwy:light-dark(#dbcca5,#5b533c);--waterink:light-dark(#5d8590,#8db3bd)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans KR",system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Nanum Myeongjo",serif;margin:0;line-height:1.1}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;min-height:44px;border-radius:10px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+header{padding:20px max(4vw,16px) 10px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{font-size:34px}
+.stat{color:var(--soft);font-size:14px;white-space:nowrap}.stat b{color:var(--ink);font-size:20px;font-family:"Nanum Myeongjo",serif}
+.mapwrap{margin:0 max(4vw,16px);border-radius:16px;overflow:hidden;background:var(--land);position:relative}
+.fig{position:relative;height:min(62vh,560px);min-height:320px;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:contain}.fig>svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}.pin{cursor:pointer}
+.zoom{position:absolute;top:10px;left:10px;display:flex;gap:4px;background:var(--card);border-radius:12px;padding:3px;box-shadow:0 1px 4px #0002}
+.zoom button{padding:0 12px;font-size:14px;min-height:36px}.zoom button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.zr{left:auto;right:10px;flex-direction:column}.zr button{font-size:20px;padding:0;width:40px}
+.info{margin:12px max(4vw,16px) 0;padding:16px 16px 6px;border:1px solid var(--line);border-radius:16px;background:var(--card)}.info h2{font-size:26px}
+body.sel .fig{height:min(46vh,440px)}
+html,body{touch-action:pan-y;overscroll-behavior:none}
+.legend{position:absolute;right:10px;bottom:10px;display:flex;gap:10px;background:var(--card);border-radius:10px;padding:6px 10px;font-size:12px;opacity:.92}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;border:2.5px solid;margin-right:4px;vertical-align:-1px}
+.hint{position:absolute;left:10px;right:10px;bottom:10px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:none}
+.hint.on{display:flex;justify-content:space-between;align-items:center;gap:8px}.hint button{color:var(--bg);text-decoration:underline;min-height:32px}
+.tabs{display:flex;gap:6px;padding:16px max(4vw,16px) 6px;position:sticky;top:0;background:var(--bg);z-index:2}
+.tabs button{padding:0 16px;border:1px solid var(--line);border-radius:999px;font-size:15px}.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tabs .add{margin-left:auto;color:var(--brass);border-color:var(--brass)}
+main{padding:6px max(4vw,16px) 60px;max-width:900px}
+.search{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:16px;margin:6px 0 10px}
+.row{display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line);width:100%;text-align:left;border-radius:0}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;border:2px solid var(--brass)}.dot.v{background:var(--brass)}.dot.jj{border-color:var(--pink)}.dot.jj.v{background:var(--pink)}.dot.mm{border-color:var(--mil)}.dot.mm.v{background:var(--mil)}
+.row .t{flex:1}.row .t div:first-child{font-weight:700}.row .t div+div{font-size:13px;color:var(--soft)}
+.score{font-family:"Nanum Myeongjo",serif;font-size:22px;font-weight:800;white-space:nowrap}.score small{font:400 12px "Noto Sans KR";color:var(--soft)}
+.empty{color:var(--soft);padding:28px 4px;font-size:15px}
+.vcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.vcard h3{font-size:18px}.vcard .meta{font-size:13px;color:var(--soft)}.vcard p{margin:4px 0 0;grid-column:1/-1;white-space:pre-wrap}
+.ph{grid-column:1/-1;display:flex;gap:6px;overflow-x:auto;padding-top:6px}.ph img{height:96px;width:96px;object-fit:cover;border-radius:10px;flex:none;background:var(--buck)}
+.bars{grid-column:1/-1;display:flex;gap:14px;font-size:13px;color:var(--soft);flex-wrap:wrap}
+.note{font-size:12px;color:var(--soft);margin-top:14px}
+.sheet{position:fixed;inset:0;background:#0006;display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet.on{display:flex}
+.panel{background:var(--bg);width:min(640px,100%);max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px 18px 28px}
+.panel h2{font-size:28px}.sub{color:var(--soft);font-size:14px;margin:4px 0 12px}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.links a,.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);text-decoration:none;color:inherit;font-size:15px}
+.btn.pri{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+.btn.warn{color:var(--pink);border-color:var(--pink)}
+.bar{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:8px}
+label.f{display:block;margin:14px 0 6px;font-size:14px;color:var(--soft)}
+.in{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:16px}
+textarea.in{min-height:90px;resize:vertical}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.stars{display:flex;gap:2px}.stars button{font-size:30px;line-height:1;padding:0 4px;color:var(--line)}.stars button.on{color:var(--brass)}
+.seg{display:flex;gap:4px;flex-wrap:wrap}.seg button{border:1px solid var(--line);padding:0 12px;min-width:44px}.seg button.on{background:var(--brass);color:#fff;border-color:var(--brass)}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.thumbs div{position:relative}.thumbs img{width:80px;height:80px;object-fit:cover;border-radius:10px}
+.thumbs button{position:absolute;top:-6px;right:-6px;min-height:26px;width:26px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:14px;padding:0}
+.ph img,.thumbs img{cursor:zoom-in}
+.lb{position:fixed;inset:0;background:#000e;display:none;align-items:center;justify-content:center;z-index:30;touch-action:none}.lb.on{display:flex}
+.lb img{max-width:100vw;max-height:100vh;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.lb button{position:absolute;color:#fff;background:#0007;border-radius:50%;width:48px;height:48px;font-size:30px;line-height:1;padding:0}
+.lbx{top:max(14px,env(safe-area-inset-top));right:14px}.lbp{left:10px;top:50%;transform:translateY(-50%)}.lbq{right:10px;top:50%;transform:translateY(-50%)}
+.lbc{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:14px;background:#0007;padding:4px 12px;border-radius:999px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;display:none;z-index:20}
+
+@media(max-width:600px){header h1{font-size:30px}}
+@media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
+</style></head><body>
+<header><h1>대동면지도</h1><div class="stat" id="stat"></div></header>
+<div class="mapwrap"><div class="fig" id="fig"><svg id="map" aria-label="평양냉면집 약도"></svg></div>
+<div class="zoom" role="group" aria-label="지도 범위"><button data-z="k">전국</button><button data-z="s">서울</button><button data-z="a">수도권</button><button data-z="b">부산</button></div><div class="zoom zr" role="group" aria-label="확대 축소"><button data-f="in" aria-label="확대">＋</button><button data-f="out" aria-label="축소">－</button></div>
+<div class="legend"><span><i style="border-color:var(--brass)"></i>평양</span><span><i style="border-color:var(--pink)"></i>진주</span><span><i style="border-color:var(--mil)"></i>밀면</span></div><div class="hint" id="hint"><span>지도에서 위치를 탭하세요</span><button id="hintX">취소</button></div></div>
+<section class="info" id="info" hidden></section>
+<div class="tabs" role="tablist"><button role="tab" data-t="list" aria-selected="true">가게</button><button role="tab" data-t="log" aria-selected="false">내 기록</button><button class="add" id="addPlace">+ 가게</button></div>
+<main id="main"></main>
+<div class="sheet" id="sheet"><div class="panel" id="panel" role="dialog" aria-modal="true"></div></div>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="사진 크게 보기"><img id="lbImg" alt=""><button class="lbx" id="lbX" aria-label="닫기">×</button><button class="lbn lbp" id="lbP" aria-label="이전 사진">‹</button><button class="lbn lbq" id="lbN" aria-label="다음 사진">›</button><div class="lbc" id="lbC"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+{
+const BASE=[
+{id:'woo',n:'우래옥',a:'서울 중구 주교동',lat:37.5683,lng:126.9986},
+{id:'pil',n:'필동면옥',a:'서울 중구 필동',lat:37.5607,lng:126.9946},
+{id:'eul',n:'을지면옥',a:'서울 종로구 낙원동',lat:37.5737,lng:126.9886},
+{id:'jang',n:'평양면옥 장충',a:'서울 중구 장충동',lat:37.5598,lng:127.0050},
+{id:'seor',n:'서령',a:'서울 중구',lat:37.5652,lng:126.9792},
+{id:'jinmi',n:'진미평양냉면',a:'서울 강남구 논현동',lat:37.5160,lng:127.0337},
+{id:'gwang',n:'광평',a:'서울 서초구',lat:37.4870,lng:127.0300},
+{id:'eulmil',n:'을밀대',a:'서울 마포구 염리동',lat:37.5487,lng:126.9446},
+{id:'jungin',n:'정인면옥',a:'서울 영등포구 여의도동',lat:37.5262,lng:126.9208},
+{id:'bong',n:'봉피양 방이',a:'서울 송파구 방이동',lat:37.5115,lng:127.1135},
+{id:'ujb',n:'평양면옥 의정부',a:'경기 의정부시',lat:37.7383,lng:127.0466},
+{id:'yang',n:'양각도',a:'경기 고양시',lat:37.6560,lng:126.7720},
+{id:'daedong',n:'대동관',a:'경기 고양시 일산 마두동',lat:37.6585,lng:126.7790},
+{id:'neungra',n:'능라도',a:'경기 성남시 판교',lat:37.3950,lng:127.1100},
+{id:'gyeongin',n:'경인면옥',a:'인천 중구 신포동',lat:37.4735,lng:126.6255},
+{id:'gobaksa',n:'고복수냉면',a:'경기 평택시',lat:36.9920,lng:127.0880},
+{id:'jangan',n:'장안면옥',a:'경기 안성시',lat:37.0080,lng:127.2700},
+{id:'asan',n:'평양면옥 아산',a:'충남 아산시',lat:36.7850,lng:127.0020},
+{id:'piyang',n:'피양옥 천안',a:'충남 천안시',lat:36.8150,lng:127.1500},
+{id:'midang',n:'미당면옥',a:'충남 당진시',lat:36.8900,lng:126.6300},
+{id:'obaksa',n:'오박사냉면',a:'충북 진천군',lat:36.8550,lng:127.4400},
+{id:'gangseo',n:'강서면옥 보은',a:'충북 보은군',lat:36.4900,lng:127.7300},
+{id:'sutgol',n:'숯골원냉면',a:'대전 유성구 신성동',lat:36.3830,lng:127.3500},
+{id:'sariwon_dj',n:'사리원면옥',a:'대전 중구',lat:36.3260,lng:127.4250},
+{id:'busanan',n:'부산안면옥',a:'대구 중구',lat:35.8680,lng:128.5980},
+{id:'daedong_dg',n:'대동면옥',a:'대구',lat:35.8550,lng:128.6250},
+{id:'harumyeon',n:'하루면옥',a:'경북 김천시',lat:36.1200,lng:128.1100},
+{id:'seobu',n:'원조서부냉면',a:'경북 영주시',lat:36.8100,lng:128.6200},
+{id:'pungro',n:'풍로옥',a:'울산',lat:35.5400,lng:129.3300},
+{id:'wonsan',n:'원산면옥',a:'부산 중구',lat:35.1000,lng:129.0330},
+{id:'bubu',n:'부부냉면',a:'부산 중구 부평동 깡통시장',lat:35.1010,lng:129.0260},
+{id:'sariwon_bs',n:'사리원냉면',a:'부산 부산진구 부전동',lat:35.1570,lng:129.0600},
+{id:'buda',n:'부다면옥',a:'부산 해운대구',lat:35.1630,lng:129.1600},
+{id:'apgang',n:'압강옥',a:'전북 군산시',lat:35.9800,lng:126.7100},
+{id:'nambuk',n:'남북면옥',a:'강원 인제군',lat:38.0700,lng:128.1700},
+{id:'omi',n:'오미냉면',a:'강원 고성군',lat:38.3800,lng:128.4700},
+{id:'gongpyeong',n:'공평옥',a:'제주 제주시',lat:33.5000,lng:126.5300},
+{id:'hwasun',n:'화순평양면옥',a:'제주 서귀포시 안덕면',lat:33.2500,lng:126.3300},
+{id:'hayeon',k:'jj',n:'하연옥 본점',a:'경남 진주시 이현동 (진주대로 1317-20)',lat:35.1800,lng:128.0750},
+{id:'hayeon_cs',k:'jj',n:'하연옥 촉석루점',a:'경남 진주시 진주성 인근',lat:35.1905,lng:128.0835},
+{id:'bakgunja',k:'jj',n:'박군자 진주냉면',a:'경남 진주시 (진주대로920번길 10)',lat:35.1620,lng:128.1060},
+{id:'hwangpo',k:'jj',n:'황포냉면',a:'경남 진주시 호탄동',lat:35.1650,lng:128.1250},
+{id:'sanhong',k:'jj',n:'진주냉면산홍',a:'경남 진주시',lat:35.1850,lng:128.0950},
+{id:'hajuok',k:'jj',n:'하주옥',a:'경남 사천시',lat:35.0800,lng:128.0700},
+{id:'hayeon_mp',k:'jj',n:'하연옥 마포',a:'서울 마포구 서교동',lat:37.5530,lng:126.9180},
+{id:'hayeon_ys',k:'jj',n:'하연옥 용산',a:'서울 용산구 한강로',lat:37.5310,lng:126.9700},
+{id:'hayeon_js',k:'jj',n:'하연옥 잠실',a:'서울 송파구 잠실',lat:37.5110,lng:127.0950},
+{id:'bakgunja_s',k:'jj',n:'박군자 진주냉면 을지로',a:'서울 중구 을지로3길 30-5',lat:37.5675,lng:126.9805},
+{id:'naeho',k:'mm',n:'내호냉면',a:'부산 남구 우암번영로26번길 17',lat:35.1245,lng:129.0745},
+{id:'gaegeum',k:'mm',n:'개금밀면',a:'부산 부산진구 개금동 개금골목시장',lat:35.1532,lng:129.0218},
+{id:'gukje',k:'mm',n:'국제밀면',a:'부산 연제구 중앙대로1235번길 23-6',lat:35.1948,lng:129.0822},
+{id:'chunha',k:'mm',n:'춘하추동밀면',a:'부산 부산진구 서면',lat:35.1552,lng:129.0602},
+{id:'seomyeon',k:'mm',n:'서면밀면',a:'부산 부산진구 서전로 25',lat:35.1570,lng:129.0618},
+{id:'choryang',k:'mm',n:'초량밀면',a:'부산 동구 중앙대로 225',lat:35.1158,lng:129.0398},
+{id:'gaya',k:'mm',n:'가야밀면',a:'부산 부산진구 가야동',lat:35.1585,lng:129.0418},
+{id:'gaya_hd',k:'mm',n:'해운대 가야밀면',a:'부산 해운대구 좌동순환로 27',lat:35.1700,lng:129.1755},
+{id:'halmae',k:'mm',n:'할매가야밀면',a:'부산 중구 광복로 56-14',lat:35.0992,lng:129.0302},
+{id:'myeongga',k:'mm',n:'명가부산밀면',a:'부산 해운대구 좌동',lat:35.1685,lng:129.1800},
+{id:'haeundae_mm',k:'mm',n:'해운대밀면',a:'부산 해운대구 중동2로10번길 21 (해운대구청 인근)',lat:35.1622,lng:129.1652},
+{id:'milmyeonjeonmun',k:'mm',n:'밀면전문점',a:'부산 수영구 망미동 부근 (T.051-752-3105)',lat:35.1790,lng:129.1060},
+{id:'yakkong',k:'mm',n:'약콩밀면 이기대본점',a:'부산 남구 동명로145번길 80 (용호동)',lat:35.1135,lng:129.1155},
+{id:'chunha_s',k:'mm',n:'춘하추동밀면 논현',a:'서울 강남구 언주로148길 14',lat:37.5228,lng:127.0352},
+{id:'wandang',k:'mm',n:'부산완당 밀면',a:'서울 서대문구 연세로 41',lat:37.5600,lng:126.9375},
+{id:'hwangsan',k:'mm',n:'황산냉면',a:'서울 송파구 가락로 257',lat:37.5085,lng:127.1160},
+{id:'hadongjin',k:'mm',n:'하동진',a:'서울 중구 다산로 253-1',lat:37.5662,lng:127.0182},
+{id:'jelmi',k:'mm',n:'젤미 가야밀면',a:'경남 김해시',lat:35.2285,lng:128.8890},
+{id:'gohyang',k:'mm',n:'고향밀면',a:'경북 경주시',lat:35.8450,lng:129.2100}];
+const KOR=[[37.75,126.45],[37.95,126.67],[38.10,126.95],[38.27,127.15],[38.30,127.60],[38.33,128.10],[38.62,128.36],[38.20,128.60],[37.75,128.95],[37.45,129.17],[37.05,129.42],[36.55,129.43],[36.08,129.57],[35.80,129.50],[35.55,129.45],[35.245,129.24],[35.205,129.225],[35.185,129.215],[35.175,129.200],[35.165,129.188],[35.157,129.178],[35.156,129.166],[35.158,129.156],[35.155,129.150],[35.150,129.152],[35.153,129.143],[35.160,129.138],[35.163,129.131],[35.158,129.125],[35.153,129.118],[35.145,129.119],[35.133,129.123],[35.120,129.122],[35.105,129.125],[35.110,129.110],[35.120,129.100],[35.115,129.090],[35.108,129.080],[35.118,129.068],[35.124,129.057],[35.116,129.046],[35.106,129.041],[35.099,129.039],[35.095,129.034],[35.093,129.025],[35.090,129.016],[35.080,129.016],[35.072,129.012],[35.062,129.012],[35.060,129.004],[35.070,128.993],[35.082,128.996],[35.075,128.985],[35.060,128.976],[35.044,128.966],[35.049,128.955],[35.065,128.951],[35.085,128.950],[35.080,128.930],[35.075,128.900],[35.072,128.865],[35.060,128.835],[35.030,128.835],[35.000,128.825],[35.040,128.790],[35.070,128.760],[35.090,128.700],[35.000,128.690],[34.80,128.65],[34.83,128.40],[34.90,128.00],[34.75,127.75],[34.60,127.30],[34.45,126.90],[34.30,126.53],[34.60,126.35],[34.79,126.38],[35.10,126.35],[35.45,126.45],[35.75,126.62],[36.00,126.70],[36.35,126.52],[36.75,126.20],[36.95,126.40],[37.00,126.78],[37.20,126.68],[37.45,126.60],[37.75,126.45]];
+const YEONGDO=[[35.095,129.040],[35.093,129.055],[35.085,129.070],[35.070,129.082],[35.055,129.087],[35.049,129.077],[35.060,129.056],[35.070,129.042],[35.080,129.036],[35.090,129.035]];
+const BRIVER=[[35.400,129.010],[35.330,128.995],[35.290,128.990],[35.250,128.995],[35.215,129.000],[35.190,128.985],[35.165,128.970],[35.140,128.962],[35.115,128.955],[35.090,128.945]];
+const BSTREAMS=[
+{n:'서낙동강',w:.35,p:[[35.235,128.985],[35.215,128.950],[35.190,128.925],[35.160,128.895],[35.120,128.880],[35.085,128.870]]},
+{n:'수영강',w:.15,p:[[35.163,129.131],[35.175,129.124],[35.190,129.120],[35.210,129.116],[35.232,129.110],[35.260,129.112]]},
+{n:'온천천',w:.05,p:[[35.181,129.118],[35.188,129.100],[35.199,129.086],[35.214,129.083],[35.226,129.088],[35.248,129.091]]},
+{n:'동천',w:.04,p:[[35.122,129.062],[35.135,129.061],[35.148,129.063],[35.160,129.062]]}];
+const BGREEN=[{n:'금정산',a:35.275,b:129.050,x:2.2,y:3.2},{n:'백양산',a:35.175,b:129.030,x:1.5,y:1.6},{n:'황령산',a:35.157,b:129.085,x:1.1,y:.9},{n:'금련산',a:35.150,b:129.100,x:.6,y:.5},{n:'장산',a:35.195,b:129.170,x:1.6,y:1.4},{n:'구덕산',a:35.122,b:129.000,x:1.0,y:1.3},{n:'승학산',a:35.103,b:128.975,x:.9,y:.9},{n:'엄광산',a:35.137,b:129.025,x:.8,y:.7},{n:'봉래산',a:35.075,b:129.062,x:.9,y:.9},{n:'천마산',a:35.093,b:129.010,x:.6,y:.5},{n:'윤산',a:35.250,b:129.105,x:.7,y:.6},{n:'이기대',a:35.124,b:129.120,x:.4,y:.4},{n:'태종대',a:35.056,b:129.082,x:.5,y:.4},{n:'을숙도',a:35.098,b:128.942,x:.7,y:1.5},{n:'부산시민공원',a:35.168,b:129.057,x:.4,y:.3},{n:'어린이대공원',a:35.186,b:129.045,x:.5,y:.5},{n:'삼락생태공원',a:35.165,b:128.972,x:.5,y:1.8},{n:'용두산공원',a:35.1005,b:129.032,x:.15,y:.15},{n:'동백섬',a:35.153,b:129.151,x:.2,y:.2}];
+const BROADS=[
+{n:'광안대교',t:1,p:[[35.122,129.112],[35.135,129.120],[35.148,129.132],[35.156,129.142]]},
+{n:'부산항대교',t:1,p:[[35.090,129.072],[35.098,129.078],[35.106,129.084]]},
+{n:'남항대교',t:1,p:[[35.082,129.018],[35.078,129.030],[35.074,129.044]]},
+{n:'을숙도대교',t:1,p:[[35.082,128.962],[35.078,128.940],[35.073,128.915]]},
+{n:'도시고속도로',t:1,p:[[35.146,129.063],[35.160,129.083],[35.178,129.098],[35.195,129.110],[35.215,129.117],[35.240,129.122],[35.265,129.128]]},
+{n:'동서고가로',t:1,p:[[35.163,128.985],[35.156,129.005],[35.152,129.030],[35.150,129.050],[35.146,129.063]]},
+{n:'중앙대로',t:2,p:[[35.100,129.035],[35.106,129.038],[35.115,129.040],[35.128,129.047],[35.141,129.058],[35.157,129.059],[35.172,129.072],[35.180,129.077],[35.196,129.081],[35.206,129.080],[35.222,129.087],[35.240,129.089],[35.262,129.092],[35.284,129.096]]},
+{n:'수영로',t:2,p:[[35.146,129.066],[35.138,129.080],[35.136,129.093],[35.141,129.106],[35.153,129.113],[35.165,129.116]]},
+{n:'해운대로',t:2,p:[[35.165,129.116],[35.169,129.128],[35.169,129.138],[35.165,129.150],[35.163,129.160],[35.167,129.175]]},
+{n:'가야대로',t:2,p:[[35.157,129.058],[35.156,129.044],[35.153,129.023],[35.151,129.005],[35.160,128.988]]},
+{n:'낙동대로',t:2,p:[[35.163,128.985],[35.140,128.985],[35.120,128.978],[35.105,128.966]]},
+{n:'충장대로',t:2,p:[[35.100,129.039],[35.110,129.044],[35.120,129.056],[35.126,129.066],[35.118,129.082]]},
+{n:'구덕로',t:2,p:[[35.098,129.030],[35.100,129.020],[35.108,129.015],[35.118,129.005],[35.120,128.995]]},
+{n:'영도대교',t:2,p:[[35.0965,129.0365],[35.0935,129.0425]]}];
+const BSUB=[
+{n:'부산1호선',c:'#B4713C',p:[[35.2836,129.0951,'노포'],[35.2731,129.0921,'범어사'],[35.2650,129.0923,'남산'],[35.2578,129.0913,'두실'],[35.2486,129.0917,'구서'],[35.2384,129.0880,'장전'],[35.2297,129.0890,'부산대'],[35.2203,129.0866,'온천장'],[35.2128,129.0795,'명륜'],[35.2057,129.0786,'동래'],[35.1958,129.0805,'교대'],[35.1859,129.0815,'연산'],[35.1797,129.0764,'시청'],[35.1730,129.0713,'양정'],[35.1626,129.0623,'부전'],[35.1578,129.0590,'서면'],[35.1475,129.0592,'범내골'],[35.1408,129.0596,'범일'],[35.1371,129.0530,'좌천'],[35.1281,129.0475,'부산진'],[35.1209,129.0424,'초량'],[35.1150,129.0410,'부산역'],[35.1039,129.0360,'중앙'],[35.0978,129.0352,'남포'],[35.0967,129.0274,'자갈치'],[35.1003,129.0177,'토성'],[35.1103,129.0174,'동대신'],[35.1176,129.0119,'서대신'],[35.1188,128.9997,'대티'],[35.1063,128.9926,'괴정'],[35.0995,128.9830,'사하'],[35.1012,128.9737,'당리'],[35.1062,128.9666,'하단'],[35.0944,128.9606,'신평'],[35.0816,128.9771,'장림'],[35.0745,128.9764,'신장림'],[35.0660,128.9799,'낫개'],[35.0577,128.9719,'다대포항'],[35.0484,128.9663,'다대포해수욕장']]},
+{n:'부산2호선',c:'#82A166',p:[[35.1696,129.1771,'장산'],[35.1666,129.1680,'중동'],[35.1636,129.1590,'해운대'],[35.1608,129.1489,'동백'],[35.1693,129.1384,'벡스코'],[35.1693,129.1316,'센텀시티'],[35.1676,129.1219,'민락'],[35.1653,129.1153,'수영'],[35.1574,129.1129,'광안'],[35.1503,129.1104,'금련산'],[35.1428,129.1078,'남천'],[35.1378,129.1002,'경성대부경대'],[35.1355,129.0930,'대연'],[35.1342,129.0848,'못골'],[35.1337,129.0779,'지게골'],[35.1395,129.0703,'문현'],[35.1462,129.0662,'국제금융센터'],[35.1530,129.0656,'전포'],[35.1578,129.0590,'서면'],[35.1628,129.0532,'부암'],[35.1559,129.0442,'가야'],[35.1578,129.0335,'동의대'],[35.1527,129.0229,'개금'],[35.1513,129.0124,'냉정'],[35.1478,129.0028,'주례'],[35.1505,128.9917,'감전'],[35.1624,128.9848,'사상'],[35.1735,128.9842,'덕포'],[35.1830,128.9849,'모덕'],[35.1906,128.9894,'모라'],[35.2005,128.9947,'구남'],[35.2075,128.9979,'구명'],[35.2104,129.0050,'덕천'],[35.2207,129.0122,'수정'],[35.2346,129.0145,'화명'],[35.2446,129.0123,'율리'],[35.2522,129.0110,'동원'],[35.2595,129.0161,'금곡'],[35.2862,129.0185,'호포']]},
+{n:'부산3호선',c:'#8C752F',p:[[35.1653,129.1153,'수영'],[35.1714,129.1052,'망미'],[35.1758,129.0961,'배산'],[35.1787,129.0880,'물만골'],[35.1859,129.0815,'연산'],[35.1898,129.0735,'거제'],[35.1916,129.0620,'종합운동장'],[35.1966,129.0566,'사직'],[35.2050,129.0660,'미남'],[35.2117,129.0367,'만덕'],[35.2107,129.0168,'남산정'],[35.2118,129.0110,'숙등'],[35.2104,129.0050,'덕천'],[35.2051,128.9975,'구포'],[35.2083,128.9810,'강서구청'],[35.2106,128.9720,'체육공원'],[35.2125,128.9618,'대저']]},
+{n:'부산4호선',c:'#4C79A0',p:[[35.2050,129.0660,'미남'],[35.2057,129.0786,'동래'],[35.2003,129.0833,'수안'],[35.1974,129.0914,'낙민'],[35.1976,129.1013,'충렬사'],[35.2026,129.1078,'명장'],[35.2108,129.1080,'서동'],[35.2164,129.1114,'금사'],[35.2240,129.1177,'반여농산물시장'],[35.2340,129.1250,'석대'],[35.2414,129.1304,'영산대']]}];
+const BAREAS=[['중구',35.104,129.030],['동구',35.130,129.045],['서구',35.110,129.010],['영도구',35.078,129.066],['부산진구',35.165,129.045],['동래구',35.204,129.090],['남구',35.128,129.098],['북구',35.220,129.020],['해운대구',35.178,129.160],['사하구',35.085,128.975],['금정구',35.250,129.095],['강서구',35.150,128.900],['연제구',35.182,129.085],['수영구',35.155,129.108],['사상구',35.160,128.990],['기장군',35.250,129.200],['서면',35.1545,129.0625],['해운대',35.1605,129.1615],['광안리',35.1515,129.1205],['남포동',35.0975,129.0315],['센텀',35.1710,129.1300]];
+const CITIES=[['서울',37.5665,126.978],['인천',37.456,126.705],['춘천',37.881,127.730],['강릉',37.752,128.876],['청주',36.642,127.489],['대전',36.351,127.385],['전주',35.824,127.148],['대구',35.871,128.601],['포항',36.019,129.343],['울산',35.539,129.311],['광주',35.160,126.851],['진주',35.180,128.108],['부산',35.180,129.075],['제주',33.499,126.531]];
+const RIVER=[[37.612,126.775],[37.5985,126.810],[37.584,126.828],[37.572,126.861],[37.5555,126.8835],[37.5495,126.8925],[37.5435,126.9045],[37.5375,126.9285],[37.533,126.937],[37.526,126.946],[37.5185,126.9585],[37.512,126.970],[37.5100,126.982],[37.5135,126.9965],[37.527,127.012],[37.5345,127.0215],[37.5375,127.0345],[37.533,127.058],[37.528,127.067],[37.5225,127.0935],[37.5325,127.1035],[37.5420,127.1125],[37.5445,127.1185],[37.556,127.132],[37.573,127.155],[37.590,127.175]];
+const STREAMS=[
+{n:'안양천',p:[[37.5555,126.8745],[37.545,126.879],[37.535,126.882],[37.517,126.885],[37.500,126.882],[37.485,126.877],[37.465,126.877],[37.440,126.885]]},
+{n:'중랑천',p:[[37.5385,127.022],[37.546,127.035],[37.553,127.041],[37.567,127.045],[37.580,127.055],[37.602,127.063],[37.622,127.064],[37.650,127.060],[37.675,127.058],[37.700,127.050],[37.735,127.045]]},
+{n:'청계천',p:[[37.5695,126.9775],[37.5693,126.986],[37.5695,126.995],[37.5700,127.010],[37.5697,127.025],[37.5665,127.035],[37.5605,127.043],[37.556,127.044]]},
+{n:'탄천',p:[[37.5195,127.0805],[37.5085,127.0755],[37.493,127.082],[37.478,127.104],[37.460,127.112],[37.440,127.122]]},
+{n:'양재천',p:[[37.472,127.010],[37.478,127.025],[37.483,127.045],[37.490,127.065],[37.4985,127.079]]},
+{n:'홍제천',p:[[37.5555,126.8925],[37.565,126.905],[37.574,126.918],[37.584,126.935],[37.596,126.945]]},
+{n:'불광천',p:[[37.563,126.898],[37.575,126.905],[37.590,126.913],[37.612,126.928]]}];
+const GREEN=[
+{n:'남산',a:37.5512,b:126.9882,x:1.0,y:.7},{n:'북한산',a:37.665,b:126.985,x:4,y:4.5},{n:'북악산',a:37.594,b:126.973,x:1.1,y:.6},{n:'인왕산',a:37.583,b:126.958,x:.6,y:.8},
+{n:'관악산',a:37.445,b:126.963,x:2.8,y:1.8},{n:'우면산',a:37.470,b:127.012,x:1.2,y:.7},{n:'청계산',a:37.428,b:127.052,x:2,y:2},{n:'대모산',a:37.473,b:127.082,x:1.3,y:.6},
+{n:'아차산',a:37.568,b:127.103,x:.8,y:1.3},{n:'수락산',a:37.690,b:127.083,x:1.6,y:2.2},{n:'불암산',a:37.650,b:127.090,x:.9,y:1.2},{n:'안산',a:37.575,b:126.945,x:.6,y:.5},
+{n:'용산공원',a:37.531,b:126.981,x:.9,y:.7},{n:'올림픽공원',a:37.520,b:127.122,x:.8,y:.55},{n:'서울숲',a:37.5445,b:127.038,x:.5,y:.35},{n:'여의도공원',a:37.5265,b:126.9225,x:.25,y:.6},
+{n:'월드컵공원',a:37.568,b:126.884,x:1,y:.5},{n:'어린이대공원',a:37.548,b:127.081,x:.45,y:.4},{n:'보라매공원',a:37.4925,b:126.920,x:.35,y:.35},{n:'창경궁·종묘',a:37.5770,b:126.9945,x:.45,y:.6},
+{n:'경복궁',a:37.5796,b:126.9770,x:.4,y:.5},{n:'선유도',a:37.5435,b:126.8995,x:.25,y:.15},{n:'뚝섬한강공원',a:37.530,b:127.068,x:.6,y:.15},{n:'월드컵경기장',a:37.5683,b:126.8972,x:.2,y:.2}];
+const ROADS=[
+{n:'경부고속도로',t:1,p:[[37.527,127.012],[37.506,127.020],[37.488,127.030],[37.470,127.040],[37.445,127.060],[37.405,127.095]]},
+{n:'내부순환로',t:1,p:[[37.5545,126.8875],[37.570,126.905],[37.585,126.935],[37.594,126.955],[37.602,126.990],[37.604,127.020],[37.600,127.045],[37.580,127.057],[37.553,127.047]]},
+{n:'동부간선도로',t:1,p:[[37.535,127.032],[37.553,127.047],[37.580,127.058],[37.620,127.066],[37.660,127.062],[37.700,127.052]]},
+{n:'서부간선도로',t:1,p:[[37.552,126.878],[37.530,126.885],[37.500,126.885],[37.470,126.880],[37.440,126.888]]},
+{n:'분당수서로',t:1,p:[[37.533,127.058],[37.510,127.073],[37.495,127.090],[37.485,127.105],[37.460,127.120]]},
+{n:'남부순환로',t:2,p:[[37.556,126.800],[37.530,126.840],[37.505,126.865],[37.488,126.900],[37.483,126.930],[37.478,126.960],[37.4766,126.9816],[37.478,127.012],[37.484,127.036],[37.488,127.070],[37.487,127.100]]},
+{n:'강남대로',t:2,p:[[37.5165,127.020],[37.5045,127.025],[37.4979,127.0276],[37.484,127.034]]},
+{n:'테헤란로',t:2,p:[[37.4979,127.0276],[37.5007,127.0365],[37.5045,127.0490],[37.5088,127.0631]]},
+{n:'영동대로',t:2,p:[[37.528,127.067],[37.5088,127.0631],[37.495,127.068]]},
+{n:'도산대로',t:2,p:[[37.5165,127.020],[37.5225,127.035],[37.525,127.050]]},
+{n:'세종대로',t:2,p:[[37.5759,126.9769],[37.5657,126.9769],[37.5600,126.9750],[37.5547,126.9707]]},
+{n:'종로',t:2,p:[[37.5703,126.9770],[37.5702,126.9831],[37.5704,126.9921],[37.5709,127.0019],[37.5714,127.0110],[37.5752,127.0250]]},
+{n:'을지로',t:2,p:[[37.5660,126.9790],[37.5663,126.9919],[37.5669,126.9980],[37.5655,127.0076],[37.5657,127.0179]]},
+{n:'퇴계로',t:2,p:[[37.5560,126.9720],[37.5585,126.9782],[37.5609,126.9863],[37.5612,126.9942],[37.5650,127.0080]]},
+{n:'한강대로',t:2,p:[[37.5547,126.9707],[37.5448,126.9722],[37.5347,126.9731],[37.5185,126.9585]]},
+{n:'마포대로',t:2,p:[[37.533,126.937],[37.5443,126.9516],[37.5574,126.9562],[37.5658,126.9666]]},
+{n:'신촌로',t:2,p:[[37.5496,126.9139],[37.5571,126.9245],[37.5552,126.9369],[37.5574,126.9562]]},
+{n:'동호로·장충단로',t:2,p:[[37.5345,127.0215],[37.5481,127.0157],[37.5543,127.0107],[37.5598,127.0050],[37.5655,127.0076]]},
+{n:'반포대로',t:2,p:[[37.5135,126.9965],[37.5049,127.0049],[37.4934,127.0140],[37.480,127.0130]]},
+{n:'노들로·여의대로',t:2,p:[[37.5185,126.9585],[37.5172,126.9289],[37.5216,126.9243],[37.5271,126.9329]]},
+{n:'왕십리로',t:2,p:[[37.5375,127.0345],[37.5446,127.0559],[37.5613,127.0371],[37.5644,127.0294]]},
+{n:'천호대로',t:2,p:[[37.5752,127.0250],[37.5661,127.0429],[37.5620,127.065],[37.5550,127.090],[37.5420,127.1125],[37.5385,127.1235]]},
+{n:'올림픽로',t:2,p:[[37.5115,127.0737],[37.5133,127.1001],[37.5165,127.1125],[37.520,127.125]]}];
+const SUB=[
+{n:'1호선',c:'#29527B',p:[[37.5088,126.8913,'신도림'],[37.5156,126.9073,'영등포'],[37.5170,126.9179,'신길'],[37.5134,126.9264,'대방'],[37.5142,126.9425,'노량진'],[37.5298,126.9648,'용산'],[37.5410,126.9713,'남영'],[37.5547,126.9707,'서울역'],[37.5657,126.9769,'시청'],[37.5702,126.9831,'종각'],[37.5704,126.9921,'종로3가'],[37.5709,127.0019,'종로5가'],[37.5714,127.0110,'동대문'],[37.5732,127.0165,'동묘앞'],[37.5752,127.0250,'신설동'],[37.5781,127.0348,'제기동'],[37.5802,127.0472,'청량리']]},
+{n:'2호선',c:'#2A7E50',loop:1,p:[[37.5657,126.9769,'시청'],[37.5660,126.9826,'을지로입구'],[37.5663,126.9919,'을지로3가'],[37.5669,126.9980,'을지로4가'],[37.5655,127.0076,'동대문역사문화공원'],[37.5657,127.0179,'신당'],[37.5644,127.0294,'상왕십리'],[37.5613,127.0371,'왕십리'],[37.5555,127.0437,'한양대'],[37.5472,127.0474,'뚝섬'],[37.5446,127.0559,'성수'],[37.5404,127.0700,'건대입구'],[37.5371,127.0857,'구의'],[37.5352,127.0947,'강변'],[37.5208,127.1036,'잠실나루'],[37.5133,127.1001,'잠실'],[37.5115,127.0863,'잠실새내'],[37.5109,127.0737,'종합운동장'],[37.5088,127.0631,'삼성'],[37.5045,127.0490,'선릉'],[37.5007,127.0365,'역삼'],[37.4979,127.0276,'강남'],[37.4934,127.0140,'교대'],[37.4918,127.0076,'서초'],[37.4815,126.9976,'방배'],[37.4766,126.9816,'사당'],[37.4769,126.9636,'낙성대'],[37.4812,126.9527,'서울대입구'],[37.4825,126.9418,'봉천'],[37.4842,126.9297,'신림'],[37.4875,126.9131,'신대방'],[37.4852,126.9015,'구로디지털단지'],[37.4925,126.8949,'대림'],[37.5088,126.8913,'신도림'],[37.5179,126.8950,'문래'],[37.5249,126.8960,'영등포구청'],[37.5349,126.9024,'당산'],[37.5496,126.9139,'합정'],[37.5571,126.9245,'홍대입구'],[37.5552,126.9369,'신촌'],[37.5567,126.9461,'이대'],[37.5574,126.9562,'아현'],[37.5597,126.9637,'충정로']]},
+{n:'3호선',c:'#BA8151',p:[[37.5745,126.9579,'독립문'],[37.5757,126.9735,'경복궁'],[37.5765,126.9854,'안국'],[37.5704,126.9921,'종로3가'],[37.5663,126.9919,'을지로3가'],[37.5612,126.9942,'충무로'],[37.5590,127.0056,'동대입구'],[37.5543,127.0107,'약수'],[37.5481,127.0157,'금호'],[37.5414,127.0179,'옥수'],[37.5270,127.0284,'압구정'],[37.5163,127.0203,'신사'],[37.5128,127.0119,'잠원'],[37.5049,127.0049,'고속터미널'],[37.4934,127.0140,'교대'],[37.4850,127.0162,'남부터미널'],[37.4842,127.0346,'양재']]},
+{n:'4호선',c:'#388AA6',p:[[37.5928,127.0166,'성신여대입구'],[37.5885,127.0060,'한성대입구'],[37.5822,127.0018,'혜화'],[37.5714,127.0110,'동대문'],[37.5655,127.0076,'동대문역사문화공원'],[37.5612,126.9942,'충무로'],[37.5609,126.9863,'명동'],[37.5585,126.9782,'회현'],[37.5547,126.9707,'서울역'],[37.5448,126.9722,'숙대입구'],[37.5347,126.9731,'삼각지'],[37.5291,126.9679,'신용산'],[37.5222,126.9743,'이촌'],[37.5028,126.9796,'동작'],[37.4868,126.9819,'총신대입구'],[37.4766,126.9816,'사당']]},
+{n:'5호선',c:'#937C9C',p:[[37.5249,126.8960,'영등포구청'],[37.5226,126.9050,'영등포시장'],[37.5216,126.9243,'여의도'],[37.5271,126.9329,'여의나루'],[37.5395,126.9459,'마포'],[37.5443,126.9516,'공덕'],[37.5536,126.9568,'애오개'],[37.5597,126.9637,'충정로'],[37.5658,126.9666,'서대문'],[37.5710,126.9768,'광화문'],[37.5704,126.9921,'종로3가'],[37.5669,126.9980,'을지로4가'],[37.5655,127.0076,'동대문역사문화공원'],[37.5603,127.0137,'청구'],[37.5546,127.0205,'신금호'],[37.5574,127.0295,'행당'],[37.5613,127.0371,'왕십리'],[37.5661,127.0429,'마장']]},
+{n:'9호선',c:'#B2AC9D',p:[[37.5338,126.9025,'당산'],[37.5281,126.9178,'국회의사당'],[37.5216,126.9243,'여의도'],[37.5172,126.9289,'샛강'],[37.5142,126.9425,'노량진'],[37.5128,126.9532,'노들'],[37.5088,126.9636,'흑석'],[37.5028,126.9796,'동작'],[37.5013,126.9873,'구반포'],[37.5034,126.9958,'신반포'],[37.5049,127.0049,'고속터미널'],[37.5045,127.0151,'사평'],[37.5045,127.0250,'신논현'],[37.5072,127.0339,'언주'],[37.5104,127.0433,'선정릉'],[37.5130,127.0530,'삼성중앙'],[37.5143,127.0601,'봉은사'],[37.5109,127.0737,'종합운동장']]}];
+const BRIDGES=[['행주대교',37.5985,126.810],['방화대교',37.584,126.828],['가양대교',37.572,126.861],['성산대교',37.5495,126.8925],['양화대교',37.5435,126.9045],['서강대교',37.5375,126.9285],['마포대교',37.533,126.937],['원효대교',37.526,126.946],['한강대교',37.5170,126.9595],['동작대교',37.5100,126.982],['반포대교',37.5135,126.9965],['한남대교',37.527,127.012],['동호대교',37.5345,127.0215],['성수대교',37.5375,127.0345],['영동대교',37.533,127.058],['청담대교',37.528,127.067],['잠실대교',37.5225,127.0935],['올림픽대교',37.5325,127.1035],['천호대교',37.5420,127.1125]];
+const AREAS=[['종로구',37.582,126.990],['중구',37.5605,126.997],['용산구',37.532,126.985],['마포구',37.560,126.910],['서대문구',37.578,126.937],['은평구',37.612,126.925],['성북구',37.595,127.018],['동대문구',37.580,127.045],['성동구',37.553,127.038],['광진구',37.545,127.085],['중랑구',37.598,127.090],['강북구',37.635,127.020],['도봉구',37.665,127.040],['노원구',37.650,127.075],['강서구',37.553,126.835],['양천구',37.522,126.860],['구로구',37.495,126.865],['영등포구',37.518,126.905],['동작구',37.500,126.950],['관악구',37.470,126.940],['서초구',37.480,127.020],['강남구',37.505,127.045],['송파구',37.503,127.110],['강동구',37.545,127.140],['금천구',37.460,126.898],['여의도',37.5255,126.928],['잠실',37.5135,127.088]];
+const K=Math.cos(37.55*Math.PI/180);
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let zoom='s',tab='list',q='',places=[],visits=[],mine=[],db=null,col=null,assets=null,picking=null,draft=null,sel=null,mem=!0;
+const svg=$('#map'),fig=$('#fig');
+const allPlaces=()=>[...BASE,...mine];
+const pv=id=>visits.filter(v=>v.pid===id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+const avg=id=>{const v=pv(id).filter(x=>x.score);return v.length?v.reduce((s,x)=>s+x.score,0)/v.length:null};
+const PHOTO={};const img=id=>PHOTO[id]||'';
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',2400)}
+const Z={k:[33.0,124.9,38.65,130.0],s:[37.475,126.895,37.600,127.130],a:[37.47,126.74,37.76,127.16],b:[35.045,128.93,35.29,129.22]};
+const VW={lat:37.54,lng:127.0,s:0};
+function fitZ(k){const W=Math.max(fig.clientWidth,200)||360,H=Math.max(fig.clientHeight,200)||400,[a0,b0,a1,b1]=Z[k];VW.lat=(a0+a1)/2;VW.lng=(b0+b1)/2;VW.s=Math.max(SMIN,Math.min(W/((b1-b0)*K),H/(a1-a0))*0.92);zoom=k}
+function proj(W,H){const s=VW.s;return{f:(la,ln)=>[W/2+(ln-VW.lng)*K*s,H/2-(la-VW.lat)*s],inv:(x,y)=>[VW.lat-(y-H/2)/s,VW.lng+(x-W/2)/(K*s)]}}
+const SMIN=40,SMAX=260000;
+function zoomAt(px,py,f){const W=fig.clientWidth,H=fig.clientHeight,P=proj(W,H),[la,ln]=P.inv(px,py);VW.s=Math.max(SMIN,Math.min(SMAX,VW.s*f));VW.lng=ln-(px-W/2)/(K*VW.s);VW.lat=la+(py-H/2)/VW.s;zoom='';req()}
+function offsetLine(p,km){const d=km/111;return p.map((q,i)=>{const a=p[Math.max(0,i-1)],b=p[Math.min(p.length-1,i+1)],dx=(b[1]-a[1])*K,dy=b[0]-a[0],L=Math.hypot(dx,dy)||1;return[q[0]+dx/L*d,q[1]-dy/L*d/K]})}
+GREEN.push(...BGREEN);SUB.push(...BSUB);AREAS.push(...BAREAS);ROADS.push(...BROADS);
+const NBANK=offsetLine(RIVER,.62),SBANK=offsetLine(RIVER,-.62);
+ROADS.unshift({n:'강변북로',t:1,p:NBANK.slice(1,-1)},{n:'올림픽대로',t:1,p:SBANK.slice(1,-1)});
+let rq=0;function req(){if(!rq)rq=requestAnimationFrame(()=>{rq=0;draw()})}
+const T=(x,y,t,sz,fill,w,anc)=>`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${sz}" ${w?`font-weight="${w}"`:''} text-anchor="${anc||'middle'}" fill="${fill}" stroke="var(--land)" stroke-width="3" paint-order="stroke">${t}</text>`;
+function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;if(!(VW.s>0)||!isFinite(VW.s)||!isFinite(VW.lat)||!isFinite(VW.lng))fitZ(zoom||'s');const P=proj(W,H),km=VW.s/111;
+ const inV=([x,y],m=60)=>x>-m&&x<W+m&&y>-m&&y<H+m;
+ const pl=p=>p.map(q=>P.f(q[0],q[1]).map(n=>n.toFixed(1)).join(',')).join(' ');
+ let h=`<rect width="${W}" height="${H}" fill="var(--water)"/><polygon points="${pl(KOR)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/><polygon points="${pl(YEONGDO)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/>`;{const[jx,jy]=P.f(33.38,126.55);h+=`<ellipse cx="${jx.toFixed(1)}" cy="${jy.toFixed(1)}" rx="${(37*km).toFixed(1)}" ry="${(17*km).toFixed(1)}" fill="var(--land)" stroke="var(--case)"/>`}
+ for(const g of GREEN){const[x,y]=P.f(g.a,g.b),rx=g.x*km,ry=g.y*km;if(x+rx<0||x-rx>W||y+ry<0||y-ry>H)continue;h+=`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="var(--park)"/>`}
+ for(const s of STREAMS)h+=`<polyline points="${pl(s.p)}" fill="none" stroke="var(--water)" stroke-width="${Math.max(2,(s.n==='청계천'?.02:.12)*km).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ for(const s of BSTREAMS)h+=`<polyline points="${pl(s.p)}" fill="none" stroke="var(--water)" stroke-width="${Math.max(2,s.w*km).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ h+=`<polyline points="${pl(BRIVER)}" fill="none" stroke="var(--water)" stroke-width="${Math.max(5,1.0*km).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ h+=`<polyline points="${pl(RIVER)}" fill="none" stroke="var(--water)" stroke-width="${Math.max(6,.95*km).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ if(km>14)for(const[n,a,b]of BRIDGES){const A=P.f(a,b),dlat=.55/111;const p1=P.f(a+dlat,b),p2=P.f(a-dlat,b);h+=`<line x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}" x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}" stroke="var(--road)" stroke-width="${Math.max(2,.03*km).toFixed(1)}"/>`;if(km>30&&inV(A))h+=T(A[0]+6,A[1]+3,n,11,'var(--soft)',0,'start')}
+ const showMinor=km>9;
+ for(const r of ROADS){if(r.t===2&&!showMinor)continue;const w=r.t===1?Math.max(2.5,Math.min(9,.05*km)):Math.max(1.5,Math.min(7,.035*km)),pts=pl(r.p);
+  h+=`<polyline points="${pts}" fill="none" stroke="var(--case)" stroke-width="${(w+2).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${pts}" fill="none" stroke="${r.t===1?'var(--hwy)':'var(--road)'}" stroke-width="${w.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`}
+ if(km>11)for(const l of SUB){const p=l.loop?[...l.p,l.p[0]]:l.p;h+=`<polyline points="${pl(p)}" fill="none" stroke="${l.c}" stroke-width="${Math.max(2,Math.min(5,.025*km)).toFixed(1)}" stroke-linejoin="round" opacity=".85"/>`}
+ if(km>6&&km<70)for(const[n,a,b]of AREAS){const A=P.f(a,b);if(inV(A,0))h+=T(A[0],A[1],n,km>25?14:12,'var(--soft)',700)}
+ if(km>16)for(const g of GREEN){const A=P.f(g.a,g.b);if(inV(A,0)&&(km>40||g.x>.9))h+=T(A[0],A[1]+4,g.n,11,'var(--parkink)')}
+ if(km>35)for(const r of ROADS){const m=r.p[Math.floor(r.p.length/2)],A=P.f(m[0],m[1]);if(inV(A,0))h+=T(A[0],A[1]-6,r.n,10.5,'var(--ink)')}
+ if(km>28){const seen=new Set();for(const l of SUB)for(const[a,b,n]of l.p){const A=P.f(a,b);if(!inV(A,10))continue;const k=n+a;const kk=n+Math.round(a);const dup=seen.has(kk);seen.add(kk);
+  h+=`<circle cx="${A[0].toFixed(1)}" cy="${A[1].toFixed(1)}" r="${km>60?4.5:3}" fill="var(--card)" stroke="${l.c}" stroke-width="2"/>`;if(km>55&&!dup)h+=T(A[0]+7,A[1]+4,n,11,'var(--ink)',500,'start')}}
+ if(km>6&&km<30)for(const[n,a,b]of [['낙동강',35.150,128.964],['수영강',35.205,129.117]]){const A=P.f(a,b);if(inV(A,0))h+=T(A[0],A[1]+4,n,12,'var(--waterink)',700)}
+ if(km<30){const A=P.f(37.5165,127.000);if(inV(A,0))h+=T(A[0],A[1]+4,'한강',12,'var(--waterink)',700)}
+ const ps=allPlaces().map(p=>({p,xy:P.f(p.lat,p.lng)})).filter(o=>inV(o.xy,20)).sort((a,b)=>a.xy[1]-b.xy[1]);
+ const boxes=[];for(const o of ps)boxes.push([o.xy[0]-11,o.xy[1]-12,o.xy[0]+11,o.xy[1]+9]);const fits=(x,y,w)=>{const b=[x-w/2,y,x+w/2,y+16];if(boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1]))return 0;boxes.push(b);return 1};
+ for(const{p,xy:[x,y]}of [...ps.filter(o=>o.p.id===sel),...ps.filter(o=>o.p.id!==sel)]){const v=pv(p.id).length,a=avg(p.id),on=sel===p.id,pc=p.k==='jj'?'var(--pink)':p.k==='mm'?'var(--mil)':'var(--brass)',lab=esc(p.n)+(a?' '+a.toFixed(1):''),lw=(p.n.length+(a?2.5:0))*12.5+6;
+  h+=`<g class="pin" data-id="${esc(p.id)}"><g transform="translate(${x} ${y}) scale(${km<5?.8:1.2}) translate(${-x} ${-y})"><circle cx="${x}" cy="${y}" r="22" fill="transparent"/><ellipse cx="${x}" cy="${y+9}" rx="10" ry="3" fill="#0003"/><path d="M${x-11} ${y-4}h22a11 10 0 0 1-22 0z" fill="${v?pc:'var(--card)'}" stroke="${pc}" stroke-width="2.2"/><path d="M${x-7} ${y-6.5}q3.5-3 7 0t7 0" fill="none" stroke="${v?'#fff':pc}" stroke-width="1.5"/>${on?`<circle cx="${x}" cy="${y}" r="18" fill="none" stroke="var(--ink)" stroke-width="2.5"/>`:''}</g>
+  ${fits(x,y+(km<5?11:17),lw*(km<5?.9:1))?T(x,y+(km<5?23:29),lab,km<5?11.5:12.5,'var(--ink)',700):''}</g>`}
+ if(km<5)for(const[n,a,b]of CITIES){const A=P.f(a,b);if(!inV(A,0))continue;if(fits(A[0]+3+n.length*6,A[1]-8,n.length*12+8))h+=`<circle cx="${A[0].toFixed(1)}" cy="${A[1].toFixed(1)}" r="2.5" fill="var(--soft)"/>`+T(A[0]+6,A[1]+4,n,11,'var(--soft)',500,'start')}
+ const sb=[.1,.2,.5,1,2,5,10,20,50,100].find(d=>d*km>=60)||20;h+=`<g transform="translate(14,${H-14})"><rect x="-6" y="-22" width="${(sb*km+12).toFixed(1)}" height="28" rx="6" fill="var(--card)" opacity=".85"/><line x2="${(sb*km).toFixed(1)}" stroke="var(--ink)" stroke-width="2"/><text x="${(sb*km/2).toFixed(1)}" y="-6" font-size="11" text-anchor="middle" fill="var(--ink)">${sb<1?sb*1000+'m':sb+'km'}</text></g>`;
+ svg.innerHTML=h;document.querySelectorAll('.zoom [data-z]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.z===zoom))}
+const ro=new ResizeObserver(()=>{if(!VW.s||zoom)fitZ(zoom||'s');draw()});ro.observe(fig);
+const ptr=new Map();let gst=null,moved=0,lastTap=0;
+const rel=e=>{const r=svg.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+function gesture(){const v=[...ptr.values()];if(v.length===1)return{x:v[0][0],y:v[0][1],d:0};return{x:(v[0][0]+v[1][0])/2,y:(v[0][1]+v[1][1])/2,d:Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1])}}
+svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);ptr.set(e.pointerId,rel(e));if(ptr.size===1)moved=0;gst=gesture()});
+svg.addEventListener('pointermove',e=>{if(!ptr.has(e.pointerId))return;ptr.set(e.pointerId,rel(e));const g=gesture();if(!gst)return gst=g;
+ const dx=g.x-gst.x,dy=g.y-gst.y;if(Math.abs(dx)+Math.abs(dy)>4||ptr.size>1)moved=1;
+ if(ptr.size>1&&gst.d&&g.d){const W=fig.clientWidth,H=fig.clientHeight,[la,ln]=proj(W,H).inv(gst.x,gst.y);VW.s=Math.max(SMIN,Math.min(SMAX,VW.s*g.d/gst.d));VW.lng=ln-(g.x-W/2)/(K*VW.s);VW.lat=la+(g.y-H/2)/VW.s}
+ else{VW.lng-=dx/(K*VW.s);VW.lat+=dy/VW.s}zoom='';gst=g;req()});
+function up(e){if(!ptr.has(e.pointerId))return;const p=rel(e);ptr.delete(e.pointerId);gst=ptr.size?gesture():null;if(ptr.size||moved||e.type==='pointercancel')return;
+ const now=Date.now();if(now-lastTap<300&&!picking){lastTap=0;zoomAt(p[0],p[1],2);return}lastTap=now;
+ if(picking){const[la,ln]=proj(fig.clientWidth,fig.clientHeight).inv(p[0],p[1]);const cb=picking;stopPick();cb(la,ln);return}
+ const el=document.elementFromPoint(e.clientX,e.clientY),g=el&&el.closest('.pin');if(g)openPlace(g.dataset.id)}
+svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
+svg.addEventListener('wheel',e=>{e.preventDefault();const[x,y]=rel(e);zoomAt(x,y,Math.exp(-e.deltaY*(e.ctrlKey?.01:.0018)))},{passive:false});
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+let tp=null;const tdist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+const mapPt=t=>{const r=svg.getBoundingClientRect();const mx=(t[0].clientX+t[1].clientX)/2-r.left,my=(t[0].clientY+t[1].clientY)/2-r.top;if(mx>=0&&my>=0&&mx<=r.width&&my<=r.height)return[mx,my];const p=sel&&allPlaces().find(q=>q.id===sel);if(p){const[x,y]=proj(r.width,r.height).f(p.lat,p.lng);if(x>0&&y>0&&x<r.width&&y<r.height)return[x,y]}return[r.width/2,r.height/2]};
+const inMap=e=>[...e.touches].every(t=>fig.contains(t.target));
+document.addEventListener('touchstart',e=>{if(e.touches.length>1){e.preventDefault();tp=inMap(e)?null:tdist(e.touches)}},{passive:false});
+document.addEventListener('touchmove',e=>{if(e.touches.length>1){e.preventDefault();if(tp==null||inMap(e))return;const d=tdist(e.touches),[x,y]=mapPt(e.touches);zoomAt(x,y,d/tp);tp=d}},{passive:false});
+document.addEventListener('touchend',e=>{if(e.touches.length<2)tp=null},{passive:true});
+document.addEventListener('wheel',e=>{if(e.ctrlKey&&!fig.contains(e.target)){e.preventDefault();zoomAt(fig.clientWidth/2,fig.clientHeight/2,Math.exp(-e.deltaY*.01))}},{passive:false});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['+','=','-','0'].includes(e.key)){e.preventDefault();if(e.key!=='0')zoomAt(fig.clientWidth/2,fig.clientHeight/2,e.key==='-'?1/1.5:1.5)}});
+document.querySelectorAll('.zoom').forEach(z=>z.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.z){fitZ(b.dataset.z);draw()}else zoomAt(fig.clientWidth/2,fig.clientHeight/2,b.dataset.f==='in'?1.8:1/1.8)}));
+function startPick(cb){picking=cb;$('#hint').classList.add('on');closeSheet();fig.scrollIntoView({behavior:'smooth',block:'center'})}
+function stopPick(){picking=null;$('#hint').classList.remove('on')}
+$('#hintX').onclick=()=>{const d=draft;stopPick();if(d)placeForm(d)};
+function stat(){const vp=new Set(visits.map(v=>v.pid)).size;$('#stat').innerHTML=`방문 <b>${vp}</b>/${allPlaces().length}곳 · 기록 <b>${visits.length}</b>`}
+function listRes(){const r=$('#res');if(!r)return;const qq=q.trim().replace(/\s+/g,'');const L=allPlaces().filter(p=>!qq||(p.n+p.a+(p.k==='jj'?'진주냉면':p.k==='mm'?'밀면':'평양냉면')).replace(/\s+/g,'').includes(qq)).sort((a,b)=>(avg(b.id)??-1)-(avg(a.id)??-1)||a.n.localeCompare(b.n,'ko'));
+ r.innerHTML=L.length?L.map(p=>{const a=avg(p.id),n=pv(p.id).length;return`<button class="row" data-id="${esc(p.id)}"><span class="dot ${n?'v':''} ${p.k||''}"></span><span class="t"><div>${esc(p.n)}</div><div>${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':''}${esc(p.a)}${n?` · ${n}번 방문`:''}</div></span>${a?`<span class="score">${a.toFixed(1)}<small>/5</small></span>`:''}</button>`}).join(''):'<div class="empty">찾는 가게가 없습니다. + 가게로 추가하세요.</div>'}
+function render(){stat();draw();const m=$('#main');
+ if(tab==='list'){if(!$('#q')){m.innerHTML=`<input class="search" id="q" type="search" placeholder="가게·동네 검색" autocomplete="off" autocorrect="off" spellcheck="false"><div id="res"></div><div class="note">기본 목록은 2026년 평양냉면 톱10 기사와 전국 평양냉면·진주냉면·밀면 맛집 소개 기사 기준이며, 지방 가게는 시·군 단위의 대략 위치입니다. 지도는 직접 그린 약도라 도로·역·가게 위치에 수백 m 오차가 있을 수 있고, 길찾기는 네이버·카카오 지도 링크로 엽니다. 두 손가락으로 지도만 확대·축소됩니다.</div>`;const qi=$('#q');qi.value=q;qi.addEventListener('input',()=>{q=qi.value;listRes()})}listRes();
+ }else{const V=[...visits].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  m.innerHTML=`<div class="bar" style="justify-content:flex-start;flex-wrap:wrap;margin:6px 0 4px"><button class="btn" id="bkOut">백업 저장</button><label class="btn" for="bkIn" style="cursor:pointer">백업 불러오기</label><input type="file" id="bkIn" accept="application/json,.json" hidden></div><div class="note" style="margin-top:0">기록과 사진은 이 기기 안에만 저장됩니다. 기기를 바꾸거나 사파리 데이터를 지우기 전에 백업 저장을 해 두세요.</div>`+(V.length?V.map(vcard).join(''):`<div class="empty">아직 기록이 없습니다. 지도에서 가게를 탭하고 '기록 추가'를 눌러 첫 그릇을 남기세요.</div>`);
+  $('#bkOut').onclick=exportAll;$('#bkIn').onchange=e=>{const f=e.target.files[0];if(f)importAll(f);e.target.value=''}}
+ }
+const name=id=>allPlaces().find(p=>p.id===id)?.n||'삭제된 가게';
+const st=n=>'★'.repeat(n||0)+'☆'.repeat(5-(n||0));
+function vcard(v){return`<div class="vcard"><div><h3>${esc(name(v.pid))}</h3><div class="meta">${esc(v.date||'')}${v.menu?' · '+esc(v.menu):''}${v.price?' · '+Number(v.price).toLocaleString()+'원':''}</div></div>
+ <div style="text-align:right"><div class="score" style="color:var(--brass)">${v.score?st(v.score):''}</div><button class="btn" style="min-height:36px;padding:0 12px;font-size:13px" data-ev="${esc(v.id)}">수정</button></div>
+ ${(v.broth||v.noodle||v.meat)?`<div class="bars">${v.broth?`<span>육수 ${v.broth}</span>`:''}${v.noodle?`<span>면 ${v.noodle}</span>`:''}${v.meat?`<span>수육·편육 ${v.meat}</span>`:''}${v.again?`<span style="color:var(--pink)">또 갈 집</span>`:''}</div>`:''}
+ ${v.memo?`<p>${esc(v.memo)}</p>`:''}${v.photos?.length?`<div class="ph">${v.photos.map((p,i)=>`<img src="${img(p)}" alt="" loading="lazy" data-set="${esc(v.photos.join(','))}" data-i="${i}">`).join('')}</div>`:''}</div>`}
+$('#main').addEventListener('click',e=>{const r=e.target.closest('.row');if(r)return openPlace(r.dataset.id);const ev=e.target.closest('[data-ev]');if(ev)visitForm(visits.find(v=>v.id===ev.dataset.ev))});
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;tab=b.dataset.t;document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b));render()});
+const sheet=$('#sheet'),panel=$('#panel');
+function openSheet(h){panel.innerHTML=h;sheet.classList.add('on');panel.scrollTop=0}
+function closeSheet(){sheet.classList.remove('on')}
+sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();stopPick()}});
+function openPlace(id){sel=id;draw();const p=allPlaces().find(x=>x.id===id);if(!p)return;const a=avg(id),V=pv(id),qn=encodeURIComponent(p.n+' '+p.a.split(' ').slice(0,2).join(' '));
+ const box=$('#info');box.hidden=false;document.body.classList.add('sel');box.innerHTML=(`<div class="bar"><h2>${esc(p.n)}</h2><button class="btn" data-x>닫기</button></div><div class="sub">${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':'평양냉면 · '}${esc(p.a)}${a?` · 내 평균 ${a.toFixed(1)} (${V.length}회)`:' · 아직 안 가봄'}</div>
+ <div class="links"><a href="https://map.naver.com/p/search/${qn}" target="_blank" rel="noopener">네이버 지도</a><a href="https://map.kakao.com/?q=${qn}" target="_blank" rel="noopener">카카오맵</a>${p.mine?`<button class="btn" data-ep>가게 수정</button>`:''}</div>
+ <button class="btn pri" style="width:100%" data-nv>+ 기록 추가</button>${V.map(vcard).join('')}`);
+ box.querySelector('[data-x]').onclick=closeInfo;box.querySelector('[data-nv]').onclick=()=>visitForm({pid:id});
+ const ep=box.querySelector('[data-ep]');if(ep)ep.onclick=()=>placeForm({...p});
+ box.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>visitForm(visits.find(v=>v.id===b.dataset.ev)));
+ closeSheet();requestAnimationFrame(()=>{const r=$('.mapwrap').getBoundingClientRect();if(r.top<0||box.getBoundingClientRect().top>innerHeight-120)scrollTo({top:scrollY+r.top-8,behavior:'smooth'})})}
+function closeInfo(){sel=null;const box=$('#info');box.hidden=true;box.innerHTML='';document.body.classList.remove('sel');draw()}
+function seg(key,val){return`<div class="seg" data-k="${key}">${[1,2,3,4,5].map(n=>`<button type="button" class="${val===n?'on':''}" data-n="${n}">${n}</button>`).join('')}</div>`}
+function visitForm(v){const d={date:new Date(Date.now()+324e5).toISOString().slice(0,10),score:0,photos:[],...v,photos:[...(v.photos||[])]};let busy=0,armed=0;
+ const paint=()=>{openSheet(`<div class="bar"><h2>${esc(name(d.pid))}</h2><button class="btn" data-x>닫기</button></div>
+ <label class="f">총점</label><div class="stars">${[1,2,3,4,5].map(n=>`<button type="button" class="${n<=d.score?'on':''}" data-s="${n}" aria-label="${n}점">★</button>`).join('')}</div>
+ <div class="two"><div><label class="f" for="fd">날짜</label><input class="in" type="date" id="fd" value="${esc(d.date)}"></div><div><label class="f" for="fp">가격(원)</label><input class="in" id="fp" inputmode="numeric" value="${esc(d.price||'')}" placeholder="16000"></div></div>
+ <label class="f" for="fm">먹은 메뉴</label><input class="in" id="fm" value="${esc(d.menu||'')}" placeholder="물냉면, 제육 반접시">
+ <label class="f">육수</label>${seg('broth',d.broth)}<label class="f">면</label>${seg('noodle',d.noodle)}<label class="f">수육·편육·고명</label>${seg('meat',d.meat)}
+ <label class="f"><input type="checkbox" id="fa" ${d.again?'checked':''}> 또 갈 집</label>
+ <label class="f" for="fmemo">메모</label><textarea class="in" id="fmemo" placeholder="육수 온도, 메밀 함량, 웨이팅, 동행">${esc(d.memo||'')}</textarea>
+ <label class="f">사진</label><input type="file" id="ff" accept="image/*" multiple ${assets?'':'disabled'}>${assets?'':'<div class="note">사진 저장은 claude.ai에서 소유자로 열 때 가능합니다.</div>'}
+ <div class="thumbs">${d.photos.map((p,i)=>`<div><img src="${img(p)}" alt="" data-set="${esc(d.photos.join(','))}" data-i="${i}"><button type="button" data-rp="${esc(p)}" aria-label="사진 빼기">×</button></div>`).join('')}${busy?'<div class="note">사진 올리는 중…</div>':''}</div>
+ <div class="bar" style="margin-top:20px">${d.id?`<button class="btn warn" data-del>${armed?'한 번 더 누르면 삭제':'삭제'}</button>`:'<span></span>'}<button class="btn pri" data-save ${busy?'disabled':''}>저장</button></div>`);
+  const grab=()=>{d.date=$('#fd').value;d.price=$('#fp').value.replace(/\D/g,'');d.menu=$('#fm').value.trim();d.memo=$('#fmemo').value;d.again=$('#fa').checked};
+  panel.querySelector('[data-x]').onclick=closeSheet;
+  panel.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{grab();d.score=+b.dataset.s;paint()});
+  panel.querySelectorAll('.seg').forEach(s=>s.onclick=e=>{const b=e.target.closest('button');if(!b)return;grab();const n=+b.dataset.n;d[s.dataset.k]=d[s.dataset.k]===n?0:n;paint()});
+  panel.querySelectorAll('[data-rp]').forEach(b=>b.onclick=()=>{grab();d.photos=d.photos.filter(p=>p!==b.dataset.rp);paint()});
+  $('#ff').onchange=async e=>{grab();const fs=[...e.target.files];if(!fs.length)return;busy=1;paint();
+   for(const f of fs){try{const r=await assets.upload(await shrink(f));d.photos.push(r.id)}catch(err){toast('사진 업로드 실패: '+(err?.message||''))}}busy=0;paint()};
+  const del=panel.querySelector('[data-del]');if(del)del.onclick=async()=>{if(!armed){armed=1;grab();paint();return}await remove(d.id);closeSheet();toast('삭제했습니다')};
+  panel.querySelector('[data-save]').onclick=async()=>{grab();if(!d.score)return toast('총점을 골라 주세요');const id=d.id||'v'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+   const o={kind:'visit',pid:d.pid,date:d.date,score:d.score,broth:d.broth||0,noodle:d.noodle||0,meat:d.meat||0,again:!!d.again,price:d.price||'',menu:d.menu||'',memo:d.memo||'',photos:d.photos};
+   if(await save(id,o)){closeSheet();toast('저장했습니다');if(sel===d.pid)openPlace(d.pid)}}};
+ paint()}
+async function shrink(f){try{const b=await createImageBitmap(f),m=1600,s=Math.min(1,m/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=Math.round(b.width*s);c.height=Math.round(b.height*s);c.getContext('2d').drawImage(b,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(x=>r(x||f),'image/jpeg',.85))}catch{return f}}
+function placeForm(p){draft=p;openSheet(`<div class="bar"><h2>${p.id?'가게 수정':'가게 추가'}</h2><button class="btn" data-x>닫기</button></div>
+ <label class="f" for="pn">가게 이름</label><input class="in" id="pn" value="${esc(p.n||'')}" placeholder="예: 봉밀가">
+ <label class="f" for="pa">동네·주소</label><input class="in" id="pa" value="${esc(p.a||'')}" placeholder="서울 강남구 삼성동">
+ <label class="f">지도 위치</label><button class="btn" style="width:100%" data-pick>${p.lat?`위치 지정됨 · 다시 탭하기`:'지도에서 위치 탭하기'}</button>
+ <div class="bar" style="margin-top:20px">${p.id?'<button class="btn warn" data-del>삭제</button>':'<span></span>'}<button class="btn pri" data-save>저장</button></div>`);
+ const grab=()=>{p.n=$('#pn').value.trim();p.a=$('#pa').value.trim()};
+ panel.querySelector('[data-x]').onclick=()=>{draft=null;closeSheet()};
+ panel.querySelector('[data-pick]').onclick=()=>{grab();startPick((la,ln)=>{p.lat=+la.toFixed(5);p.lng=+ln.toFixed(5);placeForm(p)})};
+ const del=panel.querySelector('[data-del]');if(del)del.onclick=async()=>{if(pv(p.id).length)return toast('이 가게의 기록을 먼저 지워 주세요');await remove(p.id);draft=null;closeSheet()};
+ panel.querySelector('[data-save]').onclick=async()=>{grab();if(!p.n)return toast('가게 이름을 적어 주세요');if(!p.lat)return toast('지도에서 위치를 지정해 주세요');
+  const id=p.id||'p'+Date.now().toString(36);if(await save(id,{kind:'place',n:p.n,a:p.a||'',lat:p.lat,lng:p.lng})){draft=null;closeSheet();toast('가게를 추가했습니다');openPlace(id)}}}
+let lbS=[],lbI=0,lbX0=null;const lb=$('#lb');
+function lbShow(){$('#lbImg').src=img(lbS[lbI]);$('#lbC').textContent=`${lbI+1} / ${lbS.length}`;const m=lbS.length>1;$('#lbP').style.display=$('#lbN').style.display=$('#lbC').style.display=m?'':'none'}
+function lbOpen(set,i){lbS=set;lbI=i;lbShow();lb.classList.add('on')}
+function lbClose(){lb.classList.remove('on');$('#lbImg').removeAttribute('src')}
+const lbGo=d=>{if(lbS.length<2)return;lbI=(lbI+d+lbS.length)%lbS.length;lbShow()};
+document.addEventListener('click',e=>{const im=e.target.closest('img[data-set]');if(!im)return;e.stopPropagation();lbOpen(im.dataset.set.split(','),+im.dataset.i)},true);
+$('#lbX').onclick=lbClose;$('#lbP').onclick=e=>{e.stopPropagation();lbGo(-1)};$('#lbN').onclick=e=>{e.stopPropagation();lbGo(1)};
+let lbSw=0;lb.addEventListener('click',e=>{if(lbSw){lbSw=0;return}if(e.target===lb)lbClose()});
+lb.addEventListener('pointerdown',e=>{lbX0=e.clientX});lb.addEventListener('pointerup',e=>{if(lbX0!=null&&Math.abs(e.clientX-lbX0)>50){lbSw=1;lbGo(e.clientX<lbX0?1:-1)}lbX0=null});
+document.addEventListener('keydown',e=>{if(!lb.classList.contains('on'))return;if(e.key==='Escape'){e.stopImmediatePropagation();lbClose()}if(e.key==='ArrowRight')lbGo(1);if(e.key==='ArrowLeft')lbGo(-1)},true);
+$('#addPlace').onclick=()=>placeForm({});
+function apply(docs){visits=docs.filter(d=>d.kind==='visit');mine=docs.filter(d=>d.kind==='place').map(d=>({...d,mine:1}));render();if(sel&&!sheet.classList.contains('on'))openPlace(sel)}
+const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('daedongmyeon',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('docs',{keyPath:'id'});d.createObjectStore('photos')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+ const tx=async(st,mode,fn)=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction(st,mode);const o=t.objectStore(st);const out=fn(o);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error)})};
+ return{all:()=>tx('docs','readonly',o=>o.getAll()),put:v=>tx('docs','readwrite',o=>o.put(v)),del:k=>tx('docs','readwrite',o=>o.delete(k)),pput:(k,b)=>tx('photos','readwrite',o=>o.put(b,k)),pall:async()=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction('photos','readonly'),o=t.objectStore('photos'),out={};const c=o.openCursor();c.onsuccess=()=>{const cur=c.result;if(cur){out[cur.key]=cur.value;cur.continue()}else res(out)};c.onerror=()=>rej(c.error)})},pdel:k=>tx('photos','readwrite',o=>o.delete(k))}})();
+let DOCS=[];
+async function reload(){DOCS=await IDB.all();apply(DOCS)}
+assets={upload:async blob=>{const id='ph'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);await IDB.pput(id,blob);PHOTO[id]=URL.createObjectURL(blob);return{id}}};
+db=true;col=true;
+async function save(id,o){try{await IDB.put({id,...o});await reload();return true}catch(e){toast('저장 실패: '+(e?.message||''));return false}}
+async function remove(id){try{const d=DOCS.find(x=>x.id===id);await IDB.del(id);if(d?.photos)for(const p of d.photos){if(!DOCS.some(x=>x.id!==id&&x.photos?.includes(p))){await IDB.pdel(p)}}await reload()}catch{toast('삭제 실패')}}
+const b2d=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)});
+async function exportAll(){toast('백업 파일을 만드는 중…');const ph=await IDB.pall(),photos={};for(const k in ph)photos[k]=await b2d(ph[k]);const blob=new Blob([JSON.stringify({app:'daedongmyeon',v:1,at:new Date().toISOString(),docs:DOCS,photos})],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='대동면지도-백업-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();toast('백업 파일을 저장했습니다')}
+async function importAll(file){try{const j=JSON.parse(await file.text());if(j.app!=='daedongmyeon')throw 0;for(const k in j.photos||{}){const b=await (await fetch(j.photos[k])).blob();await IDB.pput(k,b);PHOTO[k]=URL.createObjectURL(b)}for(const d of j.docs||[])await IDB.put(d);await reload();toast('복원했습니다: 기록 '+(j.docs||[]).filter(d=>d.kind==='visit').length+'개')}catch{toast('백업 파일을 읽지 못했습니다')}}
+function resetHome(){closeSheet();if(typeof lbClose==='function')lbClose();stopPick();sel=null;const ib=$('#info');ib.hidden=true;ib.innerHTML='';document.body.classList.remove('sel');tab='list';q='';document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x.dataset.t==='list'));VW.s=0;zoom='s';render();scrollTo(0,0)}
+try{history.scrollRestoration='manual'}catch{}
+addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
+let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome()}});
+resetHome();
+(async()=>{try{if(navigator.storage?.persist)navigator.storage.persist();const ph=await IDB.pall();for(const k in ph)PHOTO[k]=URL.createObjectURL(ph[k]);await reload()}catch(e){toast('저장소를 열지 못했습니다')}})();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script></body></html>
