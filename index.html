@@ -46,6 +46,7 @@ html,body{touch-action:pan-y;overscroll-behavior:none}
 .logo{line-height:0}.logo img{height:46px;width:auto;display:block}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]) .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}}:root[data-theme=dark] .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}
 @media(max-width:600px){.logo img{height:40px}}
+#gate{position:fixed;inset:0;z-index:80;background:#000;display:flex;align-items:center;justify-content:center;color:#ffffff99;font:500 15px 'Noto Sans KR',sans-serif;letter-spacing:.15em;cursor:pointer}#gate[hidden]{display:none}
 #intro{position:fixed;inset:0;z-index:70;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .3s}#intro.out{opacity:0;pointer-events:none}#intro[hidden]{display:none}
 #introV{width:100%;max-height:100%;object-fit:contain;display:block}
 #intro .spr{width:270px;height:280px;background:url(intro.png?v=1) 0 0/800% 100% no-repeat;image-rendering:auto}
@@ -99,7 +100,7 @@ textarea.in{min-height:90px;resize:vertical}
 @media(max-width:600px){header h1{font-size:30px}}
 @media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
 </style></head><body>
-<div id="intro" aria-hidden="true"><video id="introV" src="intro.mp4?v=6" muted playsinline webkit-playsinline preload="auto"></video><div class="spr" hidden></div></div>
+<div id="gate" role="button" aria-label="화면을 터치해 시작">화면을 터치해 주세요</div><div id="intro" aria-hidden="true"><video id="introV" src="intro.mp4?v=6" muted playsinline webkit-playsinline preload="auto"></video><div class="spr" hidden></div></div>
 <div id="splash" role="dialog" aria-label="대동면지도 시작 화면"><div class="sp"><img src="splash.jpg?v=3" alt="대동면지도 - 냉면 마니아들을 위한 맛집 탐방 여정"><button id="spStart">시작</button></div></div>
 <header><h1 class="logo"><img src="logo.png?v=2" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div></header>
 <div class="mapwrap"><div class="fig" id="fig"><div id="tiles" aria-hidden="true"></div><div class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div><svg id="map" aria-label="평양냉면집 약도"></svg></div>
@@ -482,10 +483,16 @@ async function importAll(file){try{const j=JSON.parse(await file.text());if(j.ap
 function resetHome(){closeSheet();if(typeof lbClose==='function')lbClose();stopPick();sel=null;const ib=$('#info');ib.hidden=true;ib.innerHTML='';document.body.classList.remove('sel');tab='list';q='';document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x.dataset.t==='list'));VW.s=0;zoom='s';render();scrollTo(0,0)}
 try{history.scrollRestoration='manual'}catch{}
 addEventListener('online',()=>draw());addEventListener('offline',()=>draw());addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
-const splash=$('#splash');function showSplash(){splash.hidden=false;splash.classList.remove('out');playIntro()}
+const splash=$('#splash');function showSplash(){splash.hidden=false;splash.classList.remove('out');showGate()}
+const gate=$('#gate');function showGate(){stopMusic();gate.hidden=false}
+gate.addEventListener('click',()=>{gate.hidden=true;audioInit();playIntro()});
+let actx=null,mbuf=null,msrc=null,mgain=null,musicWant=false;
+function audioInit(){try{if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;actx=new C();const sb=actx.createBuffer(1,1,22050),ss=actx.createBufferSource();ss.buffer=sb;ss.connect(actx.destination);ss.start(0);fetch('music.wav?v=1').then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>actx.decodeAudioData(b,res,rej))).then(b=>{mbuf=b;if(musicWant)startMusic()}).catch(()=>{})}if(actx.state!=='running')actx.resume().catch(()=>{})}catch(e){}}
+function startMusic(){musicWant=true;if(!actx||!mbuf||msrc)return;try{mgain=actx.createGain();mgain.gain.value=.9;msrc=actx.createBufferSource();msrc.buffer=mbuf;msrc.loop=true;msrc.connect(mgain);mgain.connect(actx.destination);msrc.start(0)}catch(e){msrc=null}}
+function stopMusic(){musicWant=false;if(msrc&&mgain&&actx){try{const t=actx.currentTime,s=msrc;mgain.gain.setValueAtTime(mgain.gain.value,t);mgain.gain.linearRampToValueAtTime(0,t+.4);setTimeout(()=>{try{s.stop()}catch(e){}},500)}catch(e){}}msrc=null}
 const intro=$('#intro'),spr=intro.querySelector('.spr');let introT=null;
-function endIntro(){clearTimeout(introT);try{iv.pause()}catch(e){}intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
-const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());
+function endIntro(){clearTimeout(introT);try{iv.pause()}catch(e){}if(!splash.hidden)startMusic();intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
+const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());iv.addEventListener('timeupdate',()=>{if(iv.currentTime>=10.9&&!intro.hidden)startMusic()});
 function playIntro(){clearTimeout(introT);intro.hidden=false;intro.classList.remove('out');
  try{iv.currentTime=0;iv.muted=false;const pr=iv.play();introT=setTimeout(endIntro,16000);if(pr&&pr.catch)pr.catch(()=>{iv.muted=true;const p2=iv.play();if(p2&&p2.catch)p2.catch(()=>{clearTimeout(introT);playSprite()})});return}catch(e){}
  playSprite()}
@@ -493,8 +500,8 @@ function playSprite(){iv.hidden=true;spr.hidden=false;intro.style.background='#f
  const step=()=>{spr.style.backgroundPosition=(i/7*100)+'% 0';const d=D[i];i++;introT=setTimeout(i<8?step:endIntro,d)};
  const img=new Image();let started=false;const go=()=>{if(started)return;started=true;step()};img.onload=go;img.onerror=endIntro;img.src='intro.png?v=1';setTimeout(go,1500)}
 intro.addEventListener('click',endIntro);
-playIntro();
-$('#spStart').onclick=()=>{splash.classList.add('out');setTimeout(()=>{splash.hidden=true;draw()},350)};
+showGate();
+$('#spStart').onclick=()=>{stopMusic();splash.classList.add('out');setTimeout(()=>{splash.hidden=true;draw()},350)};
 let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome();if(t>30*60*1000&&!sheet.classList.contains('on'))showSplash()}});
 resetHome();
 (async()=>{try{if(navigator.storage?.persist)navigator.storage.persist();const ph=await IDB.pall();for(const k in ph)PHOTO[k]=URL.createObjectURL(ph[k]);await reload()}catch(e){toast('저장소를 열지 못했습니다')}})();
