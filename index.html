@@ -99,7 +99,7 @@ textarea.in{min-height:90px;resize:vertical}
 @media(max-width:600px){header h1{font-size:30px}}
 @media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
 </style></head><body>
-<div id="intro" aria-hidden="true"><video id="introV" src="intro.mp4?v=5" muted playsinline webkit-playsinline preload="auto"></video><div class="spr" hidden></div></div>
+<div id="intro" aria-hidden="true"><video id="introV" src="intro.mp4?v=6" muted playsinline webkit-playsinline preload="auto"></video><div class="spr" hidden></div></div>
 <div id="splash" role="dialog" aria-label="대동면지도 시작 화면"><div class="sp"><img src="splash.jpg?v=3" alt="대동면지도 - 냉면 마니아들을 위한 맛집 탐방 여정"><button id="spStart">시작</button></div></div>
 <header><h1 class="logo"><img src="logo.png?v=2" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div></header>
 <div class="mapwrap"><div class="fig" id="fig"><div id="tiles" aria-hidden="true"></div><div class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div><svg id="map" aria-label="평양냉면집 약도"></svg></div>
@@ -487,7 +487,7 @@ const intro=$('#intro'),spr=intro.querySelector('.spr');let introT=null;
 function endIntro(){clearTimeout(introT);try{iv.pause()}catch(e){}intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
 const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());
 function playIntro(){clearTimeout(introT);intro.hidden=false;intro.classList.remove('out');
- try{iv.currentTime=0;const pr=iv.play();introT=setTimeout(endIntro,16000);if(pr&&pr.catch)pr.catch(()=>{clearTimeout(introT);playSprite()});return}catch(e){}
+ try{iv.currentTime=0;iv.muted=false;const pr=iv.play();introT=setTimeout(endIntro,16000);if(pr&&pr.catch)pr.catch(()=>{iv.muted=true;const p2=iv.play();if(p2&&p2.catch)p2.catch(()=>{clearTimeout(introT);playSprite()})});return}catch(e){}
  playSprite()}
 function playSprite(){iv.hidden=true;spr.hidden=false;intro.style.background='#fff';const D=[1000,125,125,125,125,125,125,1000];let i=0;
  const step=()=>{spr.style.backgroundPosition=(i/7*100)+'% 0';const d=D[i];i++;introT=setTimeout(i<8?step:endIntro,d)};
