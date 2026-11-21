@@ -419,6 +419,10 @@ addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
 let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome()}});
 resetHome();
 (async()=>{try{if(navigator.storage?.persist)navigator.storage.persist();const ph=await IDB.pall();for(const k in ph)PHOTO[k]=URL.createObjectURL(ph[k]);await reload()}catch(e){toast('저장소를 열지 못했습니다')}})();
-if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator){let swReg=null,hadCtl=!!navigator.serviceWorker.controller,pendingReload=false;
+ addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{swReg=r;r.update()}).catch(()=>{}));
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&swReg)swReg.update().catch(()=>{})});
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtl){hadCtl=true;return}if(sheet.classList.contains('on')){pendingReload=true;return}location.reload()});
+ setInterval(()=>{if(pendingReload&&!sheet.classList.contains('on'))location.reload()},2000)}
 }
 </script></body></html>
