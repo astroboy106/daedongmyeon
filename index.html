@@ -46,9 +46,9 @@ html,body{touch-action:pan-y;overscroll-behavior:none}
 .logo{line-height:0}.logo img{height:46px;width:auto;display:block}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]) .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}}:root[data-theme=dark] .logo img{filter:invert(1) hue-rotate(180deg) brightness(1.05)}
 @media(max-width:600px){.logo img{height:40px}}
-#splash{position:fixed;inset:0;z-index:60;background:#f4eee5;display:flex;align-items:center;justify-content:center;transition:opacity .35s}
+#splash{position:fixed;inset:0;z-index:60;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .35s}
 #splash.out{opacity:0;pointer-events:none}#splash[hidden]{display:none}
-.sp{position:relative;width:min(100vw,calc(100dvh*1080/1853));line-height:0}.sp img{width:100%;height:auto;display:block}
+.sp{position:relative;width:min(100vw,calc(100dvh*1080/1853));line-height:0}.sp img{width:100%;height:auto;display:block;-webkit-mask-image:linear-gradient(transparent 0,#000 5%,#000 97.5%,transparent 100%);mask-image:linear-gradient(transparent 0,#000 5%,#000 97.5%,transparent 100%)}
 #spStart{position:absolute;left:4.6%;top:91%;width:90.8%;height:4.4%;min-height:0;border-radius:999px;background:transparent;cursor:pointer}
 #spStart:active{background:#ffffff26}
 .hint{position:absolute;left:10px;right:10px;bottom:10px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:none}
@@ -96,8 +96,8 @@ textarea.in{min-height:90px;resize:vertical}
 @media(max-width:600px){header h1{font-size:30px}}
 @media(prefers-reduced-motion:no-preference){.panel{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
 </style></head><body>
-<div id="splash" role="dialog" aria-label="대동면지도 시작 화면"><div class="sp"><img src="splash.jpg" alt="대동면지도 - 냉면 마니아들을 위한 맛집 탐방 여정"><button id="spStart" aria-label="시작"></button></div></div>
-<header><h1 class="logo"><img src="logo.png" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div></header>
+<div id="splash" role="dialog" aria-label="대동면지도 시작 화면"><div class="sp"><img src="splash.jpg?v=2" alt="대동면지도 - 냉면 마니아들을 위한 맛집 탐방 여정"><button id="spStart" aria-label="시작"></button></div></div>
+<header><h1 class="logo"><img src="logo.png?v=2" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div></header>
 <div class="mapwrap"><div class="fig" id="fig"><div id="tiles" aria-hidden="true"></div><div class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div><svg id="map" aria-label="평양냉면집 약도"></svg></div>
 <div class="zoom" role="group" aria-label="지도 범위"><button data-z="k">전국</button><button data-z="s">서울</button><button data-z="a">수도권</button><button data-z="b">부산</button></div><div class="zoom zr" role="group" aria-label="확대 축소"><button data-f="in" aria-label="확대">＋</button><button data-f="out" aria-label="축소">－</button></div>
 <div class="legend"><span><i style="border-color:var(--brass)"></i>평양</span><span><i style="border-color:var(--pink)"></i>진주</span><span><i style="border-color:var(--mil)"></i>밀면</span><span><img id="lgBowl" alt="" style="width:16px;height:15px;image-rendering:pixelated;vertical-align:-3px;margin-right:3px">방문</span></div><div class="hint" id="hint"><span>지도에서 위치를 탭하세요</span><button id="hintX">취소</button></div></div>
