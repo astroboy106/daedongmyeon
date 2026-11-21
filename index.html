@@ -26,6 +26,7 @@ h1,h2,h3{font-family:"Nanum Myeongjo",serif;margin:0;line-height:1.1}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;min-height:44px;border-radius:10px}
 button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+#muteB{margin-left:auto;width:36px;height:36px;border-radius:50%;border:1px solid #0002;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:#24385a}#muteB svg{width:18px;height:18px}
 header{padding:20px max(4vw,16px) 10px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 header h1{font-size:34px}
 .stat{color:var(--soft);font-size:14px;white-space:nowrap}.stat b{color:var(--ink);font-size:20px;font-family:"Nanum Myeongjo",serif}
@@ -102,7 +103,7 @@ textarea.in{min-height:90px;resize:vertical}
 </style></head><body>
 <div id="gate" hidden></div><div id="intro" aria-hidden="true"><video id="introV" src="intro.mp4?v=6" muted playsinline webkit-playsinline preload="auto"></video><div class="spr" hidden></div></div>
 <div id="splash" role="dialog" aria-label="대동면지도 시작 화면"><div class="sp"><img src="splash.jpg?v=3" alt="대동면지도 - 냉면 마니아들을 위한 맛집 탐방 여정"><button id="spStart">시작</button></div></div>
-<header><h1 class="logo"><img src="logo.png?v=2" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div></header>
+<header><h1 class="logo"><img src="logo.png?v=2" alt="대동면지도" width="135" height="46"></h1><div class="stat" id="stat"></div><button id="muteB" aria-label="음악 끄기"></button></header>
 <div class="mapwrap"><div class="fig" id="fig"><div id="tiles" aria-hidden="true"></div><div class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div><svg id="map" aria-label="평양냉면집 약도"></svg></div>
 <div class="zoom" role="group" aria-label="지도 범위"><button data-z="k">전국</button><button data-z="s">서울</button><button data-z="a">수도권</button><button data-z="b">부산</button></div><div class="zoom zr" role="group" aria-label="확대 축소"><button data-f="in" aria-label="확대">＋</button><button data-f="out" aria-label="축소">－</button></div>
 <div class="legend"><span><i style="border-color:var(--brass)"></i>평양</span><span><i style="border-color:var(--pink)"></i>진주</span><span><i style="border-color:var(--mil)"></i>밀면</span><span><img id="lgBowl" alt="" style="width:16px;height:15px;image-rendering:pixelated;vertical-align:-3px;margin-right:3px">방문</span></div><div class="hint" id="hint"><span>지도에서 위치를 탭하세요</span><button id="hintX">취소</button></div></div>
@@ -487,12 +488,12 @@ const splash=$('#splash');function showSplash(){splash.hidden=false;splash.class
 const gate=$('#gate');function showGate(){stopMusic();gate.hidden=true;audioInit();playIntro()}
 gate.addEventListener('click',()=>{gate.hidden=true;audioInit();playIntro()});
 let actx=null,mbuf=null,msrc=null,mgain=null,musicWant=false;
-function audioInit(){try{if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;actx=new C();const sb=actx.createBuffer(1,1,22050),ss=actx.createBufferSource();ss.buffer=sb;ss.connect(actx.destination);ss.start(0);fetch('music.wav?v=1').then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>actx.decodeAudioData(b,res,rej))).then(b=>{mbuf=b;if(musicWant)startMusic()}).catch(()=>{})}if(actx.state!=='running')actx.resume().catch(()=>{})}catch(e){}}
+function audioInit(){try{if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;actx=new C();fetch('music.wav?v=1').then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>actx.decodeAudioData(b,res,rej))).then(b=>{mbuf=b;if(musicWant)startMusic()}).catch(()=>{})}if(actx.state!=='running'){const sb=actx.createBuffer(1,1,22050),ss=actx.createBufferSource();ss.buffer=sb;ss.connect(actx.destination);ss.start(0);actx.resume().catch(()=>{})}}catch(e){}}
 function startMusic(){musicWant=true;if(!actx||!mbuf||msrc)return;try{mgain=actx.createGain();mgain.gain.value=.9;msrc=actx.createBufferSource();msrc.buffer=mbuf;msrc.loop=true;msrc.connect(mgain);mgain.connect(actx.destination);msrc.start(0)}catch(e){msrc=null}}
 function stopMusic(){musicWant=false;if(msrc&&mgain&&actx){try{const t=actx.currentTime,s=msrc;mgain.gain.setValueAtTime(mgain.gain.value,t);mgain.gain.linearRampToValueAtTime(0,t+.4);setTimeout(()=>{try{s.stop()}catch(e){}},500)}catch(e){}}msrc=null}
 const intro=$('#intro'),spr=intro.querySelector('.spr');let introT=null;
-function endIntro(){clearTimeout(introT);try{iv.pause()}catch(e){}if(!splash.hidden)startMusic();intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
-const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());let mT=null;iv.addEventListener('playing',()=>{clearInterval(mT);mT=setInterval(()=>{if(intro.hidden||iv.paused){clearInterval(mT);return}if(iv.currentTime>=11.15){clearInterval(mT);startMusic()}},30)});
+function endIntro(){clearTimeout(introT);try{iv.pause()}catch(e){}intro.classList.add('out');setTimeout(()=>{intro.hidden=true},300)}
+const iv=$('#introV');iv.addEventListener('ended',()=>endIntro());
 function playIntro(){clearTimeout(introT);intro.hidden=false;intro.classList.remove('out');
  try{iv.currentTime=0;iv.muted=false;const pr=iv.play();introT=setTimeout(endIntro,16000);if(pr&&pr.catch)pr.catch(()=>{iv.muted=true;const p2=iv.play();if(p2&&p2.catch)p2.catch(()=>{clearTimeout(introT);playSprite()})});return}catch(e){}
  playSprite()}
@@ -501,7 +502,12 @@ function playSprite(){iv.hidden=true;spr.hidden=false;intro.style.background='#f
  const img=new Image();let started=false;const go=()=>{if(started)return;started=true;step()};img.onload=go;img.onerror=endIntro;img.src='intro.png?v=1';setTimeout(go,1500)}
 intro.addEventListener('click',endIntro);
 showGate();
-$('#spStart').onclick=()=>{stopMusic();splash.classList.add('out');setTimeout(()=>{splash.hidden=true;draw()},350)};
+$('#spStart').onclick=()=>{audioInit();if(!muted)startMusic();splash.classList.add('out');setTimeout(()=>{splash.hidden=true;draw()},350)};
+
+const ICON_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',ICON_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor"/><path d="m22 9-6 6M16 9l6 6"/></svg>';let muted=false;try{muted=localStorage.getItem('dm_mute')==='1'}catch(e){}
+const muteB=$('#muteB');function setMuteUI(){muteB.innerHTML=muted?ICON_OFF:ICON_ON;muteB.setAttribute('aria-label',muted?'음악 켜기':'음악 끄기')}setMuteUI();
+muteB.onclick=()=>{muted=!muted;try{localStorage.setItem('dm_mute',muted?'1':'0')}catch(e){}setMuteUI();audioInit();if(muted)stopMusic();else startMusic()};
+document.addEventListener('visibilitychange',()=>{if(!actx)return;if(document.hidden){actx.suspend().catch(()=>{})}else if(musicWant){actx.resume().catch(()=>{})}});
 let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome();if(t>30*60*1000&&!sheet.classList.contains('on'))showSplash()}});
 resetHome();
 (async()=>{try{if(navigator.storage?.persist)navigator.storage.persist();const ph=await IDB.pall();for(const k in ph)PHOTO[k]=URL.createObjectURL(ph[k]);await reload()}catch(e){toast('저장소를 열지 못했습니다')}})();
