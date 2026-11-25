@@ -466,7 +466,7 @@ function vcard(v){return`<div class="vcard"><div><h3>${esc(name(v.pid))}</h3><di
  <div style="text-align:right"><div class="score" style="color:var(--brass)">${v.score?st(v.score):''}</div><button class="btn" style="min-height:36px;padding:0 12px;font-size:13px" data-ev="${esc(v.id)}">수정</button></div>
  ${(v.broth||v.noodle||v.meat)?`<div class="bars">${v.broth?`<span>육수 ${v.broth}</span>`:''}${v.noodle?`<span>면 ${v.noodle}</span>`:''}${v.meat?`<span>수육·편육 ${v.meat}</span>`:''}${v.again?`<span style="color:var(--pink)">또 갈 집</span>`:''}</div>`:''}
  ${v.memo?`<p>${esc(v.memo)}</p>`:''}${v.photos?.length?`<div class="ph">${v.photos.map((p,i)=>`<img src="${img(p)}" alt="" loading="lazy" data-set="${esc(v.photos.join(','))}" data-i="${i}">`).join('')}</div>`:''}</div>`}
-$('#main').addEventListener('click',e=>{const r=e.target.closest('.row');if(r)return openPlace(r.dataset.id);const ev=e.target.closest('[data-ev]');if(ev)visitForm(visits.find(v=>v.id===ev.dataset.ev))});
+$('#main').addEventListener('click',e=>{const r=e.target.closest('.row');if(r){const p=allPlaces().find(x=>x.id===r.dataset.id);if(p){const s15=256*2**15/360/K;VW.lat=p.lat;VW.lng=p.lng;if(!(VW.s>=s15))VW.s=s15;zoom=''}openPlace(r.dataset.id);try{fig.scrollIntoView({behavior:'smooth',block:'start'})}catch(_){}return}const ev=e.target.closest('[data-ev]');if(ev)visitForm(visits.find(v=>v.id===ev.dataset.ev))});
 document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;tab=b.dataset.t;document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b));render()});
 const sheet=$('#sheet'),panel=$('#panel');
 function openSheet(h){panel.innerHTML=h;sheet.classList.add('on');panel.scrollTop=0}
