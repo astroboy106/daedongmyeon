@@ -520,7 +520,7 @@ async function exportAll(){toast('백업 파일을 만드는 중…');const ph=a
 async function importAll(file){try{const j=JSON.parse(await file.text());if(j.app!=='daedongmyeon')throw 0;for(const k in j.photos||{}){const b=await (await fetch(j.photos[k])).blob();await IDB.pput(k,b);PHOTO[k]=URL.createObjectURL(b)}for(const d of j.docs||[])await IDB.put(d);await reload();toast('복원했습니다: 기록 '+(j.docs||[]).filter(d=>d.kind==='visit').length+'개')}catch{toast('백업 파일을 읽지 못했습니다')}}
 function resetHome(){closeSheet();if(typeof lbClose==='function')lbClose();stopPick();sel=null;const ib=$('#info');ib.hidden=true;ib.innerHTML='';document.body.classList.remove('sel');tab='list';q='';document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x.dataset.t==='list'));VW.s=0;zoom='s';render();scrollTo(0,0)}
 try{history.scrollRestoration='manual'}catch{}
-addEventListener('online',()=>draw());addEventListener('offline',()=>draw());addEventListener('pageshow',e=>{if(e.persisted)resetHome()});
+addEventListener('online',()=>draw());addEventListener('offline',()=>draw());
 const splash=$('#splash');function showSplash(){splash.hidden=false;splash.classList.remove('out');showGate()}
 const gate=$('#gate');function showGate(){stopMusic();gate.hidden=true;audioInit();playIntro()}
 gate.addEventListener('click',()=>{gate.hidden=true;audioInit();playIntro()});
@@ -545,8 +545,14 @@ const ICON_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 const muteB=$('#muteB');function setMuteUI(){muteB.innerHTML=muted?ICON_OFF:ICON_ON;muteB.setAttribute('aria-label',muted?'음악 켜기':'음악 끄기')}setMuteUI();
 muteB.onclick=()=>{muted=!muted;try{localStorage.setItem('dm_mute',muted?'1':'0')}catch(e){}setMuteUI();audioInit();if(muted)stopMusic();else startMusic()};
 document.addEventListener('visibilitychange',()=>{if(!actx)return;if(document.hidden){actx.suspend().catch(()=>{})}else if(musicWant){actx.resume().catch(()=>{})}});
-let hidAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now()}else if(hidAt){const t=Date.now()-hidAt;hidAt=0;if(t>3000&&!sheet.classList.contains('on'))resetHome();if(t>30*60*1000&&!sheet.classList.contains('on'))showSplash()}});
+function saveSt(){try{sessionStorage.setItem('dm_st',JSON.stringify({lat:VW.lat,lng:VW.lng,s:VW.s,zoom,tab,q,sel}))}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveSt()});addEventListener('pagehide',saveSt);
 resetHome();
+(()=>{let st;try{st=JSON.parse(sessionStorage.getItem('dm_st')||'null')}catch(e){}if(!st||!st.s)return;
+ clearTimeout(introT);try{iv.pause()}catch(e){}intro.hidden=true;splash.hidden=true;stopMusic();
+ tab=st.tab||'list';q=st.q||'';zoom=st.zoom||'';document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===tab));
+ render();VW.lat=st.lat;VW.lng=st.lng;VW.s=st.s;draw();if(q&&$('#q')){$('#q').value=q;$('#q').dispatchEvent(new Event('input'))}
+ if(st.sel&&allPlaces().some(p=>p.id===st.sel))openPlace(st.sel)})();
 (async()=>{try{if(navigator.storage?.persist)navigator.storage.persist();const ph=await IDB.pall();for(const k in ph)PHOTO[k]=URL.createObjectURL(ph[k]);await reload()}catch(e){toast('저장소를 열지 못했습니다')}})();
 if('serviceWorker' in navigator){let swReg=null,hadCtl=!!navigator.serviceWorker.controller,pendingReload=false;
  addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{swReg=r;r.update()}).catch(()=>{}));
