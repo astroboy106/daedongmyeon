@@ -341,7 +341,8 @@ const K=Math.cos(37.55*Math.PI/180);
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let zoom='s',tab='list',q='',places=[],visits=[],mine=[],db=null,col=null,assets=null,picking=null,draft=null,sel=null,mem=!0;
 const svg=$('#map'),fig=$('#fig');
-let POS={};const allPlaces=()=>[...BASE,...mine].map(p=>POS[p.id]?{...p,lat:POS[p.id].lat,lng:POS[p.id].lng,moved:1}:p);
+let POS={},GEO={};try{GEO=JSON.parse(localStorage.getItem('dm_geo')||'{}')}catch(e){}
+const allPlaces=()=>[...BASE,...mine].map(p=>POS[p.id]?{...p,lat:POS[p.id].lat,lng:POS[p.id].lng,moved:1}:(!p.ok&&!p.mine&&GEO[p.id]&&GEO[p.id].a===p.a)?{...p,lat:GEO[p.id].lat,lng:GEO[p.id].lng,geo:1}:p);
 const pv=id=>visits.filter(v=>v.pid===id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 const avg=id=>{const v=pv(id).filter(x=>x.score);return v.length?v.reduce((s,x)=>s+x.score,0)/v.length:null};
 const BOWL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAATCAYAAACQjC21AAADU0lEQVR4Xq2UXUxTZxjH/+8BMtdy7AoqAgZhsrqg4geaUCFG2HbHDSF64cKAll2xZUuW4K3JAnG74UKH2hg08YYQbL2awBQGKkr8Gmo3ChQphQYYZbWhMD2c9zHve6Bkcd6Iz9V7cp739/8/H+cwvKeoKs2g2X/NUN4H75rbQ4JzvX+ErZvn8XiosiRDAsV5XUC3202i1FXYKvido7Gx0YC528lRminPb61Z0zSZ8MkWC5gCMA5wAESEQGSJNTT8SGM3zsP2eR2GbvyCSz1TkvXGUJzOGpIwhYEYh382ir+XkkCMofBsOjZ8aYHZrJL/ZjN2fFGHv7qa47D/AB21TnK5LtJv7lb5gj/NQII3BxwE26ZEFJ3LwuC9JRSWpCCrSkVrfxQjnWewq+w7OJ3O+DCkQ4ejmooP29FQ/y2SyOgCYwSuGHkj8xyemhAKilXc65nH/qMqMqtV9Dx5gfyK72G321FbW2skVztqqKWlhbZ/ZKau56/oq+I02pedSpr+ijR9mcwmC1UWp1N+lpVMpmQ60baTPv0mnXJSTVRZtJWyrSaajnH61b9MDoeDFNI5Tv1Qh+YHEezenCRF/HMcX5dsR2FuGo4d+BDeSQ3+fzQcP6jCd3IewcsxHMlTcefPKO5OLuDZLKEgPUHeTWSM4UKrB/WfpeH0zRn87l1A+QEV7Y9iINIxHNbBdQ3l+1QMBjUMz77EsQIz/pjQcPZBVE5dI45HvR1rwGBgAj9duALydaF0z0a03Y/h+CGTHIgCBqIPcPXxIlISX6JirxWDwWX83DODXZuAh73XwQgYGBiQcCYGYrcXyQexKtsyMqEoinT3P1u1JsIgQbf770hRzjlCoRAS+/puw2KxIi8vD8QJycnJ8Pl8EipCCImzuCDaI4XliisYHx8HSMcyB8LhMG719kEZHR1lTU1NLDg1CcEQF202m1wbY30MiCEgQMb6CoerVYgcl8vFRsf84qMCcnNzaX4ujFBoGkNDQyvOWBy2CiUyShMCE2PjYExMlkt3ghH/UoTLjo4OTE+HZI+8Xi9ydnxsNDle5oo3RUEgEJD91nUdkUgU3d3dkvHGz8Fms5GAlJWVIcVqEfWuuFgrfWExJocQiUTQ2dmJhASG4WEDJuI1ZyKv6ExXT3kAAAAASUVORK5CYII=';const PHOTO={};document.getElementById('lgBowl').src=BOWL;const img=id=>PHOTO[id]||'';
@@ -363,11 +364,19 @@ const TILESOK=location.protocol.startsWith('http')&&!/localhost|127\.0/.test(loc
 const tileBox=document.getElementById('tiles'),tilePool=new Map();
 let NM=null,nmBox=null,snapT=0;
 window.navermap_authFailure=()=>{try{nmBox&&nmBox.remove()}catch(e){}NM=null;nmBox=null;req()};
-function nmLoad(){if(!TILESOK||NM)return;const sc=document.createElement('script');sc.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=515whdpttp';
+function nmLoad(){if(!TILESOK||NM)return;const sc=document.createElement('script');sc.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=515whdpttp&submodules=geocoder';
  sc.onload=()=>{try{nmBox=document.createElement('div');nmBox.id='nmap';tileBox.appendChild(nmBox);
   NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,draggable:false,pinchZoom:false,scrollWheel:false,keyboardShortcuts:false,disableDoubleTapZoom:true,disableDoubleClickZoom:true,disableTwoFingerTapZoom:true,disableKineticPan:true,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,minZoom:6,maxZoom:21});
-  for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw()}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
+  for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw();setTimeout(geoFix,1500)}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
  document.head.appendChild(sc)}
+async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Service.geocode))return;
+ const todo=BASE.filter(p=>!p.ok&&!POS[p.id]&&!(GEO[p.id]&&GEO[p.id].a===p.a));let n=0,fail=0;
+ for(const p of todo){const q=p.a.replace(/\(.*?\)/g,'').replace(/\s+\d+층.*$/,'').trim();
+  const r=await new Promise(res=>{let done=0;const t=setTimeout(()=>{if(!done){done=1;res(null)}},5000);try{naver.maps.Service.geocode({query:q},(st,rsp)=>{if(done)return;done=1;clearTimeout(t);if(st!==naver.maps.Service.Status.OK)return res(null);const ad=rsp&&rsp.v2&&rsp.v2.addresses;res(ad&&ad.length?ad[0]:null)})}catch(e){done=1;clearTimeout(t);res(null)}});
+  if(r&&r.y&&r.x){const la=+r.y,ln=+r.x;if(Math.abs(la-p.lat)<.5&&Math.abs(ln-p.lng)<.5){GEO[p.id]={a:p.a,lat:la,lng:ln};n++}else fail++}else fail++;
+  await new Promise(r=>setTimeout(r,120))}
+ if(n){try{localStorage.setItem('dm_geo',JSON.stringify(GEO))}catch(e){}draw()}
+ if(todo.length)console.log('geoFix',n,'ok',fail,'fail')}
 function drawNaver(W,H){const pxDeg=K*VW.s,zf=Math.log2(pxDeg*360/256),z=Math.max(6,Math.min(21,Math.floor(zf+1e-6))),zr=Math.max(6,Math.min(21,Math.round(zf)));
  try{if(nmBox._w!==W||nmBox._h!==H){nmBox._w=W;nmBox._h=H;NM.setSize(new naver.maps.Size(W,H))}
   if(NM.getZoom()!==z)NM.setZoom(z,false);NM.setCenter(new naver.maps.LatLng(VW.lat,VW.lng));
@@ -465,7 +474,7 @@ function closeSheet(){sheet.classList.remove('on')}
 sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();stopPick()}});
 function openPlace(id){sel=id;draw();const p=allPlaces().find(x=>x.id===id);if(!p)return;const a=avg(id),V=pv(id),qn=encodeURIComponent(p.n+' '+p.a.split(' ').slice(0,2).join(' '));
- const box=$('#info');box.hidden=false;document.body.classList.add('sel');box.innerHTML=(`<div class="bar"><h2>${esc(p.n)}</h2><button class="btn" data-x>닫기</button></div><div class="sub">${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':'평양냉면 · '}${esc(p.a)}${a?` · 내 평균 ${a.toFixed(1)} (${V.length}회)`:' · 아직 안 가봄'}${(!p.ok&&!p.mine&&!POS[p.id])?' · <span style="color:#d9a441">위치 미확인</span>':''}</div>
+ const box=$('#info');box.hidden=false;document.body.classList.add('sel');box.innerHTML=(`<div class="bar"><h2>${esc(p.n)}</h2><button class="btn" data-x>닫기</button></div><div class="sub">${p.k==='jj'?'진주냉면 · ':p.k==='mm'?'밀면 · ':'평양냉면 · '}${esc(p.a)}${a?` · 내 평균 ${a.toFixed(1)} (${V.length}회)`:' · 아직 안 가봄'}${(!p.ok&&!p.mine&&!POS[p.id]&&!p.geo)?' · <span style="color:#d9a441">위치 미확인</span>':''}</div>
  <div class="links"><a href="https://map.naver.com/p/search/${qn}" target="_blank" rel="noopener">네이버 지도</a><a href="https://map.kakao.com/?q=${qn}" target="_blank" rel="noopener">카카오맵</a>${p.mine?`<button class="btn" data-ep>가게 수정</button>`:`<button class="btn" data-mv>위치 고치기</button>`}</div>
  <button class="btn pri" style="width:100%" data-nv>+ 기록 추가</button>${V.map(vcard).join('')}`);
  box.querySelector('[data-x]').onclick=closeInfo;box.querySelector('[data-nv]').onclick=()=>visitForm({pid:id});
@@ -532,7 +541,7 @@ db=true;col=true;
 async function save(id,o){try{await IDB.put({id,...o});await reload();return true}catch(e){toast('저장 실패: '+(e?.message||''));return false}}
 async function remove(id){try{const d=DOCS.find(x=>x.id===id);await IDB.del(id);if(d?.photos)for(const p of d.photos){if(!DOCS.some(x=>x.id!==id&&x.photos?.includes(p))){await IDB.pdel(p)}}await reload()}catch{toast('삭제 실패')}}
 const b2d=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b)});
-async function exportAll(){toast('백업 파일을 만드는 중…');const ph=await IDB.pall(),photos={};for(const k in ph)photos[k]=await b2d(ph[k]);const blob=new Blob([JSON.stringify({app:'daedongmyeon',v:1,at:new Date().toISOString(),docs:DOCS,photos})],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='대동면지도-백업-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();toast('백업 파일을 저장했습니다')}
+async function exportAll(){toast('백업 파일을 만드는 중…');const ph=await IDB.pall(),photos={};for(const k in ph)photos[k]=await b2d(ph[k]);const blob=new Blob([JSON.stringify({app:'daedongmyeon',v:1,at:new Date().toISOString(),docs:DOCS,geo:GEO,photos})],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='대동면지도-백업-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();toast('백업 파일을 저장했습니다')}
 async function importAll(file){try{const j=JSON.parse(await file.text());if(j.app!=='daedongmyeon')throw 0;for(const k in j.photos||{}){const b=await (await fetch(j.photos[k])).blob();await IDB.pput(k,b);PHOTO[k]=URL.createObjectURL(b)}for(const d of j.docs||[])await IDB.put(d);await reload();toast('복원했습니다: 기록 '+(j.docs||[]).filter(d=>d.kind==='visit').length+'개')}catch{toast('백업 파일을 읽지 못했습니다')}}
 function resetHome(){closeSheet();if(typeof lbClose==='function')lbClose();stopPick();sel=null;const ib=$('#info');ib.hidden=true;ib.innerHTML='';document.body.classList.remove('sel');tab='list';q='';document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x.dataset.t==='list'));VW.s=0;zoom='s';render();scrollTo(0,0)}
 try{history.scrollRestoration='manual'}catch{}
