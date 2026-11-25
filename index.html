@@ -34,7 +34,8 @@ header h1{font-size:34px}
 .fig{position:relative;height:min(62vh,560px);min-height:320px;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:contain}.fig>svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}.pin{cursor:pointer}
 #tiles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}.fig{isolation:isolate}#tiles img{position:absolute;left:0;top:0;opacity:0;transition:opacity .2s;max-width:none;transform-origin:0 0}#tiles img.ok{opacity:1}
 #nmap{position:absolute;inset:0;transform-origin:50% 50%;pointer-events:none}
-.mapdark #nmap{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+.mapdark #nmap{filter:invert(1) hue-rotate(180deg)}
+.mapdark #nmap .dmk{filter:invert(1) hue-rotate(180deg)}
 #dkB[aria-pressed=true]{background:var(--ink);color:var(--bg)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]) #tiles>img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}:root[data-theme=dark] #tiles>img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
 .attr{position:absolute;left:12px;bottom:46px;font-size:10px;color:#555;background:#fffc;padding:1px 5px;border-radius:4px;z-index:2;pointer-events:auto}.attr a{color:inherit}
@@ -366,7 +367,10 @@ let NM=null,nmBox=null,snapT=0;
 window.navermap_authFailure=()=>{try{nmBox&&nmBox.remove()}catch(e){}NM=null;nmBox=null;req()};
 function nmLoad(){if(!TILESOK||NM)return;const sc=document.createElement('script');sc.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=515whdpttp&submodules=geocoder';
  sc.onload=()=>{try{nmBox=document.createElement('div');nmBox.id='nmap';tileBox.appendChild(nmBox);
-  NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,draggable:false,pinchZoom:false,scrollWheel:false,keyboardShortcuts:false,disableDoubleTapZoom:true,disableDoubleClickZoom:true,disableTwoFingerTapZoom:true,disableKineticPan:true,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,minZoom:6,maxZoom:21,tileTransition:false,tileSpare:2,background:'#f3f2ee'});
+  NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,minZoom:6,maxZoom:21,keyboardShortcuts:false,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,tileTransition:true,tileSpare:2,background:'#f3f2ee'});
+  nmBox.style.pointerEvents='auto';svg.style.display='none';
+  naver.maps.Event.addListener(NM,'idle',nmIdle);
+  naver.maps.Event.addListener(NM,'click',e=>{if(picking){const cb=picking;stopPick();cb(e.coord.lat(),e.coord.lng())}});
   for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw();setTimeout(geoFix,1500)}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
  document.head.appendChild(sc)}
 async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Service.geocode))return;
@@ -377,6 +381,32 @@ async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Servic
   await new Promise(r=>setTimeout(r,120))}
  if(n){try{localStorage.setItem('dm_geo',JSON.stringify(GEO))}catch(e){}draw()}
  if(todo.length)console.log('geoFix',n,'ok',fail,'fail')}
+const MK=new Map();
+function nmNpd(z){let v=256*2**z/360;try{const pj=NM.getProjection(),c=NM.getCenter(),A=pj.fromCoordToOffset(c),B=pj.fromCoordToOffset(new naver.maps.LatLng(c.lat(),c.lng()+.01)),t=(B.x-A.x)/.01;if(t>0&&isFinite(t))v=t}catch(e){}return v}
+function nmIdle(){const c=NM.getCenter();VW.lat=c.lat();VW.lng=c.lng();VW.s=nmNpd(NM.getZoom())/K;VW._ns={lat:VW.lat,lng:VW.lng,s:VW.s};if(NM._push)NM._push=0;else zoom='';
+ document.querySelectorAll('.zoom [data-z]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.z===zoom));nmLabels()}
+function nmDraw(){const ns=VW._ns;if(!ns||Math.abs(VW.lat-ns.lat)>1e-7||Math.abs(VW.lng-ns.lng)>1e-7||Math.abs(VW.s/ns.s-1)>1e-4){
+  const zf=Math.log2(K*VW.s*360/256),z=Math.max(6,Math.min(21,zoom?Math.floor(zf+.15):Math.round(zf)));VW._ns={lat:VW.lat,lng:VW.lng,s:VW.s};NM._push=zoom?1:0;
+  try{if(ns)NM.morph(new naver.maps.LatLng(VW.lat,VW.lng),z);else{NM.setCenter(new naver.maps.LatLng(VW.lat,VW.lng));NM.setZoom(z,false)}}catch(e){}}
+ nmMarkers();document.querySelectorAll('.zoom [data-z]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.z===zoom))}
+function nmMarkers(){const dk=fig.classList.contains('mapdark'),seen=new Set();
+ for(const p of allPlaces()){seen.add(p.id);const v=pv(p.id).length,a=avg(p.id),on=sel===p.id,pc=p.k==='jj'?'var(--pink)':p.k==='mm'?'var(--mil)':'var(--brass)',lab=esc(p.n)+(a?' '+a.toFixed(1):'');
+  const sig=[v?1:0,a,on,pc,lab,dk,p.lat,p.lng].join('|');let m=MK.get(p.id);if(m&&m._sig===sig)continue;
+  const ring=on?`<div style="position:absolute;left:3px;top:3px;width:38px;height:38px;border-radius:50%;border:3px solid ${dk?'#f2ede4':'#1c1a17'};box-sizing:border-box"></div>`:'';
+  const icon=v?`<div style="position:absolute;left:12px;top:30px;width:20px;height:6px;border-radius:50%;background:#0003"></div><img src="${BOWL}" alt="" style="position:absolute;left:8px;top:6.7px;width:28px;height:26.6px;image-rendering:pixelated;max-width:none"><div style="position:absolute;left:15px;top:34.5px;width:14px;height:2.5px;border-radius:1.2px;background:${pc}"></div>`
+   :`<svg width="44" height="44" style="position:absolute;left:0;top:0;overflow:visible"><ellipse cx="22" cy="31" rx="10" ry="3" fill="#0003"/><path d="M11 18h22a11 10 0 0 1-22 0z" fill="${dk?'#2a2622':'#e6e6e6'}" stroke="${pc}" stroke-width="2.2"/><path d="M15 15.5q3.5-3 7 0t7 0" fill="none" stroke="${pc}" stroke-width="1.5"/></svg>`;
+  const lc=dk?'#f2ede4':'#1c1a17',hc=dk?'#1c1a17':'#fff';
+  const html=`<div class="dmk" style="position:relative;width:44px;height:44px;cursor:pointer">${ring}${icon}<div class="lb" style="position:absolute;top:40px;left:50%;transform:translateX(-50%);white-space:nowrap;font-weight:700;font-size:14.5px;line-height:1.2;color:${lc};text-shadow:0 0 2px ${hc},0 0 2px ${hc},0 0 3px ${hc},0 0 4px ${hc}">${lab}</div></div>`;
+  const ic={content:html,anchor:new naver.maps.Point(22,22)},pos=new naver.maps.LatLng(p.lat,p.lng),zi=on?1000:v?500:100;
+  if(!m){m=new naver.maps.Marker({map:NM,position:pos,icon:ic,zIndex:zi});const id=p.id;naver.maps.Event.addListener(m,'click',()=>{if(picking)return;openPlace(id)});MK.set(p.id,m)}else{m.setIcon(ic);m.setPosition(pos);m.setZIndex(zi)}
+  m._sig=sig;m._pri=on?0:v?1:2;m._lw=(p.n.length+(a?2.5:0))*13+6}
+ for(const[k,m]of MK)if(!seen.has(k)){m.setMap(null);MK.delete(k)}
+ nmLabels()}
+function nmLabels(){if(!NM)return;let pj;try{pj=NM.getProjection()}catch(e){return}const L=[];
+ for(const m of MK.values()){let o;try{o=pj.fromCoordToOffset(m.getPosition())}catch(e){continue}L.push({m,x:o.x,y:o.y})}
+ L.sort((a,b)=>a.m._pri-b.m._pri||a.y-b.y);const boxes=L.map(o=>[o.x-14,o.y-16,o.x+14,o.y+14]);
+ for(const o of L){const w=o.m._lw,b=[o.x-w/2,o.y+18,o.x+w/2,o.y+38];const ok=!boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1]);if(ok)boxes.push(b);
+  const el=o.m.getElement&&o.m.getElement(),lb=el&&el.querySelector('.lb');if(lb)lb.style.display=ok?'':'none'}}
 function drawNaver(W,H){const pxDeg=K*VW.s,zf=Math.log2(pxDeg*360/256),zg=(ptr.size||tp!=null)&&NM._z&&(zf-NM._z)>=-1e-6&&(zf-NM._z)<2,z=zg?NM._z:Math.max(6,Math.min(21,Math.floor(zf+1e-6))),zr=(()=>{if(NM._lz!=null&&Math.abs(zf-NM._lz)>1e-4)NM._dir=zf>NM._lz?1:-1;NM._lz=zf;const t=NM._dir>0?Math.ceil(zf-1e-3):NM._dir<0?Math.floor(zf+1e-3):Math.round(zf);return Math.max(6,Math.min(21,t))})();
  try{if(nmBox._w!==W||nmBox._h!==H){nmBox._w=W;nmBox._h=H;NM.setSize(new naver.maps.Size(W,H))}
   NM._z=z;if(NM.getZoom()!==z)NM.setZoom(z,false);NM.setCenter(new naver.maps.LatLng(VW.lat,VW.lng));
@@ -392,7 +422,7 @@ function drawTiles(W,H){const c=MY(VW.lat),pxDeg=K*VW.s;let zf=Math.log2(pxDeg*3
    if(!im){im=new Image();im.decoding='async';im.alt='';im.draggable=false;im.style.zIndex=zt;im.onload=()=>im.classList.add('ok');im.src=`https://tile.openstreetmap.org/${zt}/${((tx%n)+n)%n}/${ty}.png`;tileBox.appendChild(im);tilePool.set(k,im)}
    const x=W/2+((tx/n*360-180)-VW.lng)*pxDeg,y=H/2-((180-ty/n*360)-c)*pxDeg;im.style.transform=`translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;im.style.width=im.style.height=(ts+.6).toFixed(2)+'px'}}
  for(const[k,im]of tilePool)if(!used.has(k)){im.remove();tilePool.delete(k)}}
-function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;const TILES=TILESOK&&navigator.onLine!==false;if(!TILES&&tilePool.size){for(const im of tilePool.values())im.remove();tilePool.clear()}if(!(VW.s>0)||!isFinite(VW.s)||!isFinite(VW.lat)||!isFinite(VW.lng))fitZ(zoom||'s');const P=proj(W,H),km=K*VW.s/(111.32*Math.cos(VW.lat*D2R));if(TILES){if(NM)drawNaver(W,H);else drawTiles(W,H)}const PS=TILES?Math.max(km<5?.8:1.0,Math.min(3.5,1.2*Math.sqrt(km/300))):(km<5?.8:1.2);
+function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;const TILES=TILESOK&&navigator.onLine!==false;if(!TILES&&tilePool.size){for(const im of tilePool.values())im.remove();tilePool.clear()}if(!(VW.s>0)||!isFinite(VW.s)||!isFinite(VW.lat)||!isFinite(VW.lng))fitZ(zoom||'s');if(NM){nmDraw();return}const P=proj(W,H),km=K*VW.s/(111.32*Math.cos(VW.lat*D2R));if(TILES){if(NM)drawNaver(W,H);else drawTiles(W,H)}const PS=TILES?Math.max(km<5?.8:1.0,Math.min(3.5,1.2*Math.sqrt(km/300))):(km<5?.8:1.2);
  const inV=([x,y],m=60)=>x>-m&&x<W+m&&y>-m&&y<H+m;
  const pl=p=>p.map(q=>P.f(q[0],q[1]).map(n=>n.toFixed(1)).join(',')).join(' ');
  let h='';if(!TILES){h=`<rect width="${W}" height="${H}" fill="var(--water)"/><polygon points="${pl(KOR)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/><polygon points="${pl(YEONGDO)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/>`;{const[jx,jy]=P.f(33.38,126.55);h+=`<ellipse cx="${jx.toFixed(1)}" cy="${jy.toFixed(1)}" rx="${(37*km).toFixed(1)}" ry="${(17*km).toFixed(1)}" fill="var(--land)" stroke="var(--case)"/>`}
