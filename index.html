@@ -34,7 +34,7 @@ header h1{font-size:34px}
 .fig{position:relative;height:min(62vh,560px);min-height:320px;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:contain}.fig>svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}.pin{cursor:pointer}
 #tiles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}.fig{isolation:isolate}#tiles img{position:absolute;left:0;top:0;opacity:0;transition:opacity .2s;max-width:none;transform-origin:0 0}#tiles img.ok{opacity:1}
 #nmap{position:absolute;inset:0;transform-origin:50% 50%;pointer-events:none}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #tiles img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}:root[data-theme=dark] #tiles img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #tiles>img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}:root[data-theme=dark] #tiles>img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
 .attr{position:absolute;left:12px;bottom:46px;font-size:10px;color:#555;background:#fffc;padding:1px 5px;border-radius:4px;z-index:2;pointer-events:auto}.attr a{color:inherit}
 .fig>svg{z-index:1}
 .zoom{position:absolute;top:10px;left:10px;display:flex;gap:4px;background:var(--card);border-radius:12px;padding:3px;box-shadow:0 1px 4px #0002}
