@@ -33,9 +33,8 @@ header h1{font-size:34px}
 .mapwrap{margin:0 max(4vw,16px);border-radius:16px;overflow:hidden;background:var(--land);position:relative}
 .fig{position:relative;height:min(62vh,560px);min-height:320px;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:contain}.fig>svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}.pin{cursor:pointer}
 #tiles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}.fig{isolation:isolate}#tiles img{position:absolute;left:0;top:0;opacity:0;transition:opacity .2s;max-width:none;transform-origin:0 0}#tiles img.ok{opacity:1}
-.fig.nmon #tiles{background:#f3f2ee}.fig.nmon.mapdark #tiles{background:#16171b}
-.nmap{position:absolute;inset:0;transform-origin:50% 50%;pointer-events:none;background:#f3f2ee}
-.mapdark .nmap{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+#nmap{position:absolute;inset:0;transform-origin:50% 50%;pointer-events:none}
+.mapdark #nmap{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
 #dkB[aria-pressed=true]{background:var(--ink);color:var(--bg)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]) #tiles>img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}:root[data-theme=dark] #tiles>img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
 .attr{position:absolute;left:12px;bottom:46px;font-size:10px;color:#555;background:#fffc;padding:1px 5px;border-radius:4px;z-index:2;pointer-events:auto}.attr a{color:inherit}
@@ -363,15 +362,12 @@ let rq=0;function req(){if(!rq)rq=requestAnimationFrame(()=>{rq=0;draw()})}
 const T=(x,y,t,sz,fill,w,anc)=>`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${sz}" ${w?`font-weight="${w}"`:''} text-anchor="${anc||'middle'}" fill="${fill}" stroke="var(--land)" stroke-width="3" paint-order="stroke">${t}</text>`;
 const TILESOK=location.protocol.startsWith('http')&&!/localhost|127\.0/.test(location.hostname)||/tiles=1/.test(location.search);
 const tileBox=document.getElementById('tiles'),tilePool=new Map();
-let NM=null,nmBox=null,snapT=0,NB=[],nf=0,snapA=0;
-window.navermap_authFailure=()=>{try{NB.forEach(o=>o.box.remove())}catch(e){}NB=[];NM=null;nmBox=null;req()};
-function nmMk(){const box=document.createElement('div');box.className='nmap';tileBox.appendChild(box);
- const m=new naver.maps.Map(box,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,draggable:false,pinchZoom:false,scrollWheel:false,keyboardShortcuts:false,disableDoubleTapZoom:true,disableDoubleClickZoom:true,disableTwoFingerTapZoom:true,disableKineticPan:true,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,minZoom:6,maxZoom:21});
- const o={m,box,z:null,ok:false,want:null};naver.maps.Event.addListener(m,'tilesloaded',()=>{o.ok=true;if(NB[nf]!==o&&o.z===o.want){nmSwap();req()}});return o}
-function nmSwap(){nf=1-nf;const F=NB[nf],Bk=NB[1-nf];F.box.style.zIndex=2;F.box.style.opacity='1';Bk.box.style.zIndex=1;Bk.box.style.opacity='0';NM=F.m;nmBox=F.box}
+let NM=null,nmBox=null,snapT=0;
+window.navermap_authFailure=()=>{try{nmBox&&nmBox.remove()}catch(e){}NM=null;nmBox=null;req()};
 function nmLoad(){if(!TILESOK||NM)return;const sc=document.createElement('script');sc.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=515whdpttp&submodules=geocoder';
- sc.onload=()=>{try{NB=[nmMk(),nmMk()];nf=1;nmSwap();fig.classList.add('nmon');
-  for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw();setTimeout(geoFix,1500)}catch(e){try{NB.forEach(o=>o.box.remove())}catch(_){}NB=[];NM=null;nmBox=null;draw()}};
+ sc.onload=()=>{try{nmBox=document.createElement('div');nmBox.id='nmap';tileBox.appendChild(nmBox);
+  NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,draggable:false,pinchZoom:false,scrollWheel:false,keyboardShortcuts:false,disableDoubleTapZoom:true,disableDoubleClickZoom:true,disableTwoFingerTapZoom:true,disableKineticPan:true,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,minZoom:6,maxZoom:21});
+  for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw();setTimeout(geoFix,1500)}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
  document.head.appendChild(sc)}
 async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Service.geocode))return;
  const todo=BASE.filter(p=>!p.ok&&!POS[p.id]&&/\d/.test(p.a)&&!(GEO[p.id]&&GEO[p.id].a===p.a));let n=0,fail=0;
@@ -381,18 +377,12 @@ async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Servic
   await new Promise(r=>setTimeout(r,120))}
  if(n){try{localStorage.setItem('dm_geo',JSON.stringify(GEO))}catch(e){}draw()}
  if(todo.length)console.log('geoFix',n,'ok',fail,'fail')}
-function nmPlace(o,z,W,H,pxDeg){if(o.box._w!==W||o.box._h!==H){o.box._w=W;o.box._h=H;o.m.setSize(new naver.maps.Size(W,H))}
- if(o.m.getZoom()!==z){o.ok=false;o.t0=performance.now();o.m.setZoom(z,false);setTimeout(req,800)}o.z=z;o.m.setCenter(new naver.maps.LatLng(VW.lat,VW.lng));
- let npd=256*2**z/360;try{const pj=o.m.getProjection(),A=pj.fromCoordToOffset(new naver.maps.LatLng(VW.lat,VW.lng)),B=pj.fromCoordToOffset(new naver.maps.LatLng(VW.lat,VW.lng+.01)),v=(B.x-A.x)/.01;if(v>0&&isFinite(v))npd=v}catch(e){}
- const k=pxDeg/npd;o.box.style.transform=Math.abs(k-1)<.002?'':`scale(${k})`;return{k,npd}}
-function drawNaver(W,H){const pxDeg=K*VW.s,zf=Math.log2(pxDeg*360/256),F=NB[nf],Bk=NB[1-nf];if(!F)return;
- if(NB._lz!=null&&Math.abs(zf-NB._lz)>1e-4&&!snapA)NB._dir=zf>NB._lz?1:-1;NB._lz=zf;
- let want=Math.max(6,Math.min(21,Math.floor(zf+1e-6)));
- try{let r;if(F.z==null||F.z===want){r=nmPlace(F,want,W,H,pxDeg);Bk.want=null}
-  else{r=nmPlace(F,F.z,W,H,pxDeg);Bk.want=want;nmPlace(Bk,want,W,H,pxDeg);if(Bk.ok||performance.now()-(Bk.t0||0)>750){nmSwap();r=nmPlace(NB[nf],want,W,H,pxDeg)}}
-  clearTimeout(snapT);if(!snapA&&Math.abs(Math.log2(r.k))>.003)snapT=setTimeout(()=>{if(ptr.size||tp!=null)return;
-   const z0=Math.log2(K*VW.s*360/256),zt=Math.max(6,Math.min(21,NB._dir>0?Math.ceil(z0-.02):NB._dir<0?Math.floor(z0+.02):Math.round(z0))),s0=VW.s,s1=VW.s*2**(zt-z0),t0=performance.now();
-   const st=now=>{const t=Math.min(1,(now-t0)/220),e=1-(1-t)**3;VW.s=s0*(s1/s0)**e;draw();if(t<1&&!ptr.size&&tp==null)snapA=requestAnimationFrame(st);else snapA=0};snapA=requestAnimationFrame(st)},250)}catch(e){}}
+function drawNaver(W,H){const pxDeg=K*VW.s,zf=Math.log2(pxDeg*360/256),z=Math.max(6,Math.min(21,Math.floor(zf+1e-6))),zr=Math.max(6,Math.min(21,Math.round(zf)));
+ try{if(nmBox._w!==W||nmBox._h!==H){nmBox._w=W;nmBox._h=H;NM.setSize(new naver.maps.Size(W,H))}
+  if(NM.getZoom()!==z)NM.setZoom(z,false);NM.setCenter(new naver.maps.LatLng(VW.lat,VW.lng));
+  let npd=256*2**z/360;try{const pj=NM.getProjection(),A=pj.fromCoordToOffset(new naver.maps.LatLng(VW.lat,VW.lng)),B=pj.fromCoordToOffset(new naver.maps.LatLng(VW.lat,VW.lng+.01)),v=(B.x-A.x)/.01;if(v>0&&isFinite(v))npd=v}catch(e){}
+  const k=pxDeg/npd;nmBox.style.transform=Math.abs(k-1)<.002?'':`scale(${k})`;
+  clearTimeout(snapT);if(Math.abs(k-1)>=.002)snapT=setTimeout(()=>{if(ptr.size||tp!=null)return;VW.s=npd*2**(zr-z)/K;draw()},350)}catch(e){}}
 function drawTiles(W,H){const c=MY(VW.lat),pxDeg=K*VW.s;let zf=Math.log2(pxDeg*360/256);const used=new Set();
  for(const zt of [Math.max(0,Math.min(19,Math.round(zf)-1)),Math.max(0,Math.min(19,Math.round(zf)))]){const n=2**zt,ts=pxDeg*360/n;
   const lng0=VW.lng-(W/2)/pxDeg,lng1=VW.lng+(W/2)/pxDeg,y0=c+(H/2)/pxDeg,y1=c-(H/2)/pxDeg;
