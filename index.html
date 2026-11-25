@@ -34,7 +34,7 @@ header h1{font-size:34px}
 .fig{position:relative;height:min(62vh,560px);min-height:320px;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:contain}.fig>svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}.pin{cursor:pointer}
 #tiles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}.fig{isolation:isolate}#tiles img{position:absolute;left:0;top:0;opacity:0;transition:opacity .2s;max-width:none;transform-origin:0 0}#tiles img.ok{opacity:1}
 #nmap{position:absolute;inset:0;transform-origin:50% 50%;pointer-events:none}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #tiles{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}:root[data-theme=dark] #tiles{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) #tiles img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}:root[data-theme=dark] #tiles img{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
 .attr{position:absolute;left:12px;bottom:46px;font-size:10px;color:#555;background:#fffc;padding:1px 5px;border-radius:4px;z-index:2;pointer-events:auto}.attr a{color:inherit}
 .fig>svg{z-index:1}
 .zoom{position:absolute;top:10px;left:10px;display:flex;gap:4px;background:var(--card);border-radius:12px;padding:3px;box-shadow:0 1px 4px #0002}
@@ -364,7 +364,7 @@ window.navermap_authFailure=()=>{try{nmBox&&nmBox.remove()}catch(e){}NM=null;nmB
 function nmLoad(){if(!TILESOK||NM)return;const sc=document.createElement('script');sc.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=515whdpttp';
  sc.onload=()=>{try{nmBox=document.createElement('div');nmBox.id='nmap';tileBox.appendChild(nmBox);
   NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,draggable:false,pinchZoom:false,scrollWheel:false,keyboardShortcuts:false,disableDoubleTapZoom:true,disableDoubleClickZoom:true,disableTwoFingerTapZoom:true,disableKineticPan:true,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,minZoom:6,maxZoom:21});
-  for(const im of tilePool.values())im.remove();tilePool.clear();draw()}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
+  for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw()}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
  document.head.appendChild(sc)}
 function drawNaver(W,H){const pxDeg=K*VW.s,zf=Math.log2(pxDeg*360/256),z=Math.max(6,Math.min(21,Math.round(zf)));
  try{if(nmBox._w!==W||nmBox._h!==H){nmBox._w=W;nmBox._h=H;NM.setSize(new naver.maps.Size(W,H))}
@@ -410,7 +410,7 @@ function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;const TI
   ${fits(x,y+9*PS+6,lw*1.2*(km<5?.9:1),19)?T(x,y+9*PS+20,lab,km<5?13.8:15,'var(--ink)',700):''}</g>`;if(v||on)top=(on?top+pg:pg+top);else h+=pg}
  h+=top;
  if(km<5&&!TILES)for(const[n,a,b]of CITIES){const A=P.f(a,b);if(!inV(A,0))continue;if(fits(A[0]+3+n.length*6,A[1]-8,n.length*12+8))h+=`<circle cx="${A[0].toFixed(1)}" cy="${A[1].toFixed(1)}" r="2.5" fill="var(--soft)"/>`+T(A[0]+6,A[1]+4,n,11,'var(--soft)',500,'start')}
- const sb=[.1,.2,.5,1,2,5,10,20,50,100].find(d=>d*km>=60)||20;h+=`<g transform="translate(14,${H-14})"><rect x="-6" y="-22" width="${(sb*km+12).toFixed(1)}" height="28" rx="6" fill="var(--card)" opacity=".85"/><line x2="${(sb*km).toFixed(1)}" stroke="var(--ink)" stroke-width="2"/><text x="${(sb*km/2).toFixed(1)}" y="-6" font-size="11" text-anchor="middle" fill="var(--ink)">${sb<1?sb*1000+'m':sb+'km'}</text></g>`;
+ const sb=[.1,.2,.5,1,2,5,10,20,50,100].find(d=>d*km>=60)||20;h+=`<g transform="translate(14,${H-(NM?40:14)})"><rect x="-6" y="-22" width="${(sb*km+12).toFixed(1)}" height="28" rx="6" fill="var(--card)" opacity=".85"/><line x2="${(sb*km).toFixed(1)}" stroke="var(--ink)" stroke-width="2"/><text x="${(sb*km/2).toFixed(1)}" y="-6" font-size="11" text-anchor="middle" fill="var(--ink)">${sb<1?sb*1000+'m':sb+'km'}</text></g>`;
  svg.innerHTML=h;document.querySelectorAll('.zoom [data-z]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.z===zoom))}
 const ro=new ResizeObserver(()=>{if(!VW.s||zoom)fitZ(zoom||'s');draw()});ro.observe(fig);
 const ptr=new Map();let gst=null,moved=0,lastTap=0;
