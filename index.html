@@ -364,14 +364,15 @@ const T=(x,y,t,sz,fill,w,anc)=>`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fo
 const TILESOK=location.protocol.startsWith('http')&&!/localhost|127\.0/.test(location.hostname)||/tiles=1/.test(location.search);
 const tileBox=document.getElementById('tiles'),tilePool=new Map();
 let NM=null,nmBox=null,snapT=0;
-window.navermap_authFailure=()=>{try{nmBox&&nmBox.remove()}catch(e){}NM=null;nmBox=null;req()};
+window.navermap_authFailure=()=>{try{nmBox&&nmBox.remove()}catch(e){}NM=null;nmBox=null;svg.style.display='';toast('네이버 지도 인증 실패');req()};
+addEventListener('error',e=>{if(!window._errT){window._errT=1;try{toast('오류: '+(e.message||'')+' @'+(e.lineno||''))}catch(_){}}});
 function nmLoad(){if(!TILESOK||NM)return;const sc=document.createElement('script');sc.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=515whdpttp&submodules=geocoder';
  sc.onload=()=>{try{nmBox=document.createElement('div');nmBox.id='nmap';tileBox.appendChild(nmBox);
   NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,minZoom:6,maxZoom:21,keyboardShortcuts:false,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,tileTransition:true,tileSpare:2,background:'#f3f2ee'});
   nmBox.style.pointerEvents='auto';svg.style.display='none';
   naver.maps.Event.addListener(NM,'idle',nmIdle);
   naver.maps.Event.addListener(NM,'click',e=>{if(picking){const cb=picking;stopPick();cb(e.coord.lat(),e.coord.lng())}});
-  for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw();setTimeout(geoFix,1500)}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
+  for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw();setTimeout(geoFix,1500)}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;svg.style.display='';toast('지도 오류: '+(e&&e.message||e));draw()}};
  document.head.appendChild(sc)}
 async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Service.geocode))return;
  const todo=BASE.filter(p=>!p.ok&&!POS[p.id]&&/\d/.test(p.a)&&!(GEO[p.id]&&GEO[p.id].a===p.a));let n=0,fail=0;
@@ -422,7 +423,7 @@ function drawTiles(W,H){const c=MY(VW.lat),pxDeg=K*VW.s;let zf=Math.log2(pxDeg*3
    if(!im){im=new Image();im.decoding='async';im.alt='';im.draggable=false;im.style.zIndex=zt;im.onload=()=>im.classList.add('ok');im.src=`https://tile.openstreetmap.org/${zt}/${((tx%n)+n)%n}/${ty}.png`;tileBox.appendChild(im);tilePool.set(k,im)}
    const x=W/2+((tx/n*360-180)-VW.lng)*pxDeg,y=H/2-((180-ty/n*360)-c)*pxDeg;im.style.transform=`translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;im.style.width=im.style.height=(ts+.6).toFixed(2)+'px'}}
  for(const[k,im]of tilePool)if(!used.has(k)){im.remove();tilePool.delete(k)}}
-function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;const TILES=TILESOK&&navigator.onLine!==false;if(!TILES&&tilePool.size){for(const im of tilePool.values())im.remove();tilePool.clear()}if(!(VW.s>0)||!isFinite(VW.s)||!isFinite(VW.lat)||!isFinite(VW.lng))fitZ(zoom||'s');if(NM){nmDraw();return}const P=proj(W,H),km=K*VW.s/(111.32*Math.cos(VW.lat*D2R));if(TILES){if(NM)drawNaver(W,H);else drawTiles(W,H)}const PS=TILES?Math.max(km<5?.8:1.0,Math.min(3.5,1.2*Math.sqrt(km/300))):(km<5?.8:1.2);
+function draw(){const W=fig.clientWidth,H=fig.clientHeight;if(!W)return;const TILES=TILESOK&&navigator.onLine!==false;if(!TILES&&tilePool.size){for(const im of tilePool.values())im.remove();tilePool.clear()}if(!(VW.s>0)||!isFinite(VW.s)||!isFinite(VW.lat)||!isFinite(VW.lng))fitZ(zoom||'s');if(NM){try{nmDraw()}catch(e){if(!NM._err){NM._err=1;toast('마커 오류: '+(e&&e.message||e))}}return}const P=proj(W,H),km=K*VW.s/(111.32*Math.cos(VW.lat*D2R));if(TILES){if(NM)drawNaver(W,H);else drawTiles(W,H)}const PS=TILES?Math.max(km<5?.8:1.0,Math.min(3.5,1.2*Math.sqrt(km/300))):(km<5?.8:1.2);
  const inV=([x,y],m=60)=>x>-m&&x<W+m&&y>-m&&y<H+m;
  const pl=p=>p.map(q=>P.f(q[0],q[1]).map(n=>n.toFixed(1)).join(',')).join(' ');
  let h='';if(!TILES){h=`<rect width="${W}" height="${H}" fill="var(--water)"/><polygon points="${pl(KOR)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/><polygon points="${pl(YEONGDO)}" fill="var(--land)" stroke="var(--case)" stroke-width="1"/>`;{const[jx,jy]=P.f(33.38,126.55);h+=`<ellipse cx="${jx.toFixed(1)}" cy="${jy.toFixed(1)}" rx="${(37*km).toFixed(1)}" ry="${(17*km).toFixed(1)}" fill="var(--land)" stroke="var(--case)"/>`}
