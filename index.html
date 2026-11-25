@@ -366,7 +366,7 @@ let NM=null,nmBox=null,snapT=0;
 window.navermap_authFailure=()=>{try{nmBox&&nmBox.remove()}catch(e){}NM=null;nmBox=null;req()};
 function nmLoad(){if(!TILESOK||NM)return;const sc=document.createElement('script');sc.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=515whdpttp&submodules=geocoder';
  sc.onload=()=>{try{nmBox=document.createElement('div');nmBox.id='nmap';tileBox.appendChild(nmBox);
-  NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,draggable:false,pinchZoom:false,scrollWheel:false,keyboardShortcuts:false,disableDoubleTapZoom:true,disableDoubleClickZoom:true,disableTwoFingerTapZoom:true,disableKineticPan:true,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,minZoom:6,maxZoom:21});
+  NM=new naver.maps.Map(nmBox,{center:new naver.maps.LatLng(VW.lat||37.54,VW.lng||127),zoom:12,draggable:false,pinchZoom:false,scrollWheel:false,keyboardShortcuts:false,disableDoubleTapZoom:true,disableDoubleClickZoom:true,disableTwoFingerTapZoom:true,disableKineticPan:true,zoomControl:false,mapDataControl:false,scaleControl:false,mapTypeControl:false,logoControl:true,minZoom:6,maxZoom:21,tileTransition:false,tileSpare:2,background:'#f3f2ee'});
   for(const im of tilePool.values())im.remove();tilePool.clear();const at=document.querySelector('.attr');if(at)at.hidden=true;draw();setTimeout(geoFix,1500)}catch(e){NM=null;if(nmBox)nmBox.remove();nmBox=null;draw()}};
  document.head.appendChild(sc)}
 async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Service.geocode))return;
@@ -377,9 +377,9 @@ async function geoFix(){if(!(window.naver&&naver.maps.Service&&naver.maps.Servic
   await new Promise(r=>setTimeout(r,120))}
  if(n){try{localStorage.setItem('dm_geo',JSON.stringify(GEO))}catch(e){}draw()}
  if(todo.length)console.log('geoFix',n,'ok',fail,'fail')}
-function drawNaver(W,H){const pxDeg=K*VW.s,zf=Math.log2(pxDeg*360/256),z=Math.max(6,Math.min(21,Math.floor(zf+1e-6))),zr=Math.max(6,Math.min(21,Math.round(zf)));
+function drawNaver(W,H){const pxDeg=K*VW.s,zf=Math.log2(pxDeg*360/256),zg=(ptr.size||tp!=null)&&NM._z&&(zf-NM._z)>=-1e-6&&(zf-NM._z)<2,z=zg?NM._z:Math.max(6,Math.min(21,Math.floor(zf+1e-6))),zr=Math.max(6,Math.min(21,Math.round(zf)));
  try{if(nmBox._w!==W||nmBox._h!==H){nmBox._w=W;nmBox._h=H;NM.setSize(new naver.maps.Size(W,H))}
-  if(NM.getZoom()!==z)NM.setZoom(z,false);NM.setCenter(new naver.maps.LatLng(VW.lat,VW.lng));
+  NM._z=z;if(NM.getZoom()!==z)NM.setZoom(z,false);NM.setCenter(new naver.maps.LatLng(VW.lat,VW.lng));
   let npd=256*2**z/360;try{const pj=NM.getProjection(),A=pj.fromCoordToOffset(new naver.maps.LatLng(VW.lat,VW.lng)),B=pj.fromCoordToOffset(new naver.maps.LatLng(VW.lat,VW.lng+.01)),v=(B.x-A.x)/.01;if(v>0&&isFinite(v))npd=v}catch(e){}
   const k=pxDeg/npd;nmBox.style.transform=Math.abs(k-1)<.002?'':`scale(${k})`;
   clearTimeout(snapT);if(Math.abs(k-1)>=.002)snapT=setTimeout(()=>{if(ptr.size||tp!=null)return;VW.s=npd*2**(zr-z)/K;draw()},350)}catch(e){}}
